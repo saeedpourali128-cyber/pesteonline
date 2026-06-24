@@ -1,0 +1,145 @@
+export interface NewsArticle {
+  id: number;
+  title: string;
+  summary: string;
+  content: string;
+  category: string;
+  date: string;
+  source: string;
+  slug: string;
+  relatedTypes: string[];
+  imageQuery: string;
+}
+
+export const allNewsArticles: NewsArticle[] = [
+  {
+    id: 1,
+    title: "افزایش ۴.۸ درصدی قیمت پسته اکبری در یک هفته گذشته",
+    summary: "قیمت پسته اکبری سایز ۲۸-۳۰ در بازار امروز به کیلویی ۱,۸۵۰,۰۰۰ تومان رسید که نسبت به هفته گذشته ۴.۸ درصد افزایش داشته است.",
+    content: "قیمت پسته اکبری در بازار امروز با رشد چشمگیری همراه بود و به مرز ۱,۸۵۰,۰۰۰ تومان در هر کیلوگرم رسید. این افزایش قیمت که از ابتدای هفته جاری آغاز شده، در مجموع به ۴.۸ درصد رسیده است.\n\nکارشناسان بازار پسته علت اصلی این رشد را افزایش تقاضای صادراتی از سوی کشورهای اروپایی و کاهش موجودی انبارها عنوان می‌کنند. همچنین نوسانات نرخ ارز در بازار آزاد نیز به این روند دامن زده است.\n\nتحلیلگران پیش‌بینی می‌کنند با توجه به نزدیک شدن به فصل جدید و کاهش بیشتر موجودی، روند صعودی قیمت پسته اکبری در هفته‌های آینده نیز ادامه یابد.",
+    category: "بازار داخلی",
+    date: "۲۳ خرداد ۱۴۰۵",
+    source: "تحریریه PesteOnline",
+    slug: "afzayesh-4-8-darsadi-gheymat-peste-akbari",
+    relatedTypes: ["akbari"],
+    imageQuery: "Premium Akbari pistachios arranged on a market stall, rich green kernels visible through split shells, vibrant bazaar atmosphere with warm golden lighting, Persian marketplace photography, detailed close-up of luxury nuts, editorial food journalism style, warm amber and green tones",
+  },
+  {
+    id: 2,
+    title: "صادرات پسته ایران به اروپا ۱۲ درصد رشد کرد",
+    summary: "طبق آمار گمرک، صادرات پسته ایران به کشورهای اروپایی در سه ماهه اول سال ۱۴۰۵ نسبت به مدت مشابه سال قبل ۱۲ درصد افزایش یافته است.",
+    content: "بر اساس آمار منتشر شده توسط گمرک جمهوری اسلامی ایران، صادرات پسته به کشورهای اروپایی در سه ماهه اول سال ۱۴۰۵ با رشد ۱۲ درصدی نسبت به مدت مشابه سال قبل همراه بوده است.\n\nآلمان، ایتالیا و فرانسه همچنان بزرگترین خریداران پسته ایران در اروپا هستند. پسته اکبری و کله قوچی بیشترین سهم را در این صادرات داشته‌اند.\n\nاین رشد صادرات در حالی رقم می‌خورد که تحریم‌های اقتصادی همچنان موانعی برای تجارت ایجاد می‌کنند، اما کیفیت بالای پسته ایرانی و قیمت رقابتی آن، بازار اروپا را همچنان مشتاق نگه داشته است.",
+    category: "صادرات",
+    date: "۲۲ خرداد ۱۴۰۵",
+    source: "تحریریه PesteOnline",
+    slug: "saderat-peste-iran-be-orupa-12-darsad-roshd",
+    relatedTypes: ["akbari", "kaleh-ghouchi"],
+    imageQuery: "Iranian pistachios in export packaging on shipping pallets, industrial warehouse setting with natural light, stacks of export-grade nut packages with Persian labels, international trade photography style, professional logistics environment, clean industrial aesthetic",
+  },
+  {
+    id: 3,
+    title: "پیش‌بینی تولید ۳۰۰ هزار تن پسته در سال جاری",
+    summary: "رئیس انجمن پسته ایران از پیش‌بینی تولید ۳۰۰ هزار تن پسته در سال ۱۴۰۵ خبر داد که نسبت به سال گذشته ۱۵ درصد افزایش نشان می‌دهد.",
+    content: "رئیس انجمن پسته ایران در گفتگو با PesteOnline اعلام کرد: بر اساس گزارش‌های میدانی از باغات پسته استان کرمان و سایر مناطق پسته‌کاری، پیش‌بینی می‌شود تولید پسته در سال جاری به ۳۰۰ هزار تن برسد.\n\nاین رقم نسبت به تولید ۲۶۰ هزار تنی سال گذشته، ۱۵ درصد افزایش نشان می‌دهد. شرایط آب و هوایی مطلوب در فصل گرده‌افشانی، کاهش آفات و افزایش سطح زیر کشت از عوامل اصلی این رشد تولید هستند.\n\nبا این حال، کارشناسان هشدار می‌دهند که افزایش تولید لزوماً به معنای کاهش قیمت نیست، زیرا تقاضای صادراتی نیز به طور همزمان در حال رشد است.",
+    category: "تولید",
+    date: "۲۱ خرداد ۱۴۰۵",
+    source: "انجمن پسته ایران",
+    slug: "pishbini-tolid-300-hezar-ton-peste",
+    relatedTypes: ["akbari", "ahmad-aghaei", "fandoghi"],
+    imageQuery: "Vast Iranian pistachio orchard in Kerman province at golden hour, rows of mature pistachio trees with clusters of ripening nuts, majestic agricultural landscape with distant mountains, warm desert tones, documentary agricultural photography, rich earthy colors",
+  },
+  {
+    id: 4,
+    title: "نوسانات نرخ ارز و تأثیر آن بر بازار پسته",
+    summary: "با توجه به نوسانات اخیر نرخ دلار در بازار آزاد، فعالان بازار پسته با احتیاط بیشتری معاملات خود را انجام می‌دهند.",
+    content: "نوسانات نرخ ارز در هفته‌های اخیر تأثیر مستقیمی بر بازار پسته داشته است. با افزایش قیمت دلار تا مرز ۵۹,۲۰۰ تومان، قیمت پسته صادراتی نیز روند صعودی به خود گرفته است.\n\nفعالان بازار پسته می‌گویند: بی‌ثباتی نرخ ارز باعث شده تجار با احتیاط بیشتری معاملات خود را انجام دهند و برخی خریداران عمده ترجیح می‌دهند منتظر ثبات بیشتر بازار بمانند.\n\nتحلیلگران PesteOnline معتقدند در صورت ادامه روند فعلی نرخ ارز، قیمت پسته در بازار داخلی می‌تواند تا ۱۰ درصد دیگر افزایش یابد.",
+    category: "تحلیل بازار",
+    date: "۲۰ خرداد ۱۴۰۵",
+    source: "تحریریه PesteOnline",
+    slug: "navasanat-nerkh-arz-va-tasir-bar-bazar-peste",
+    relatedTypes: ["akbari", "kaleh-ghouchi", "ahmad-aghaei"],
+    imageQuery: "Financial trading desk with Iranian currency notes and a bowl of premium pistachios side by side, business newspaper in Persian, warm office lighting, economic analysis concept photography, professional editorial style, rich amber tones with green accents",
+  },
+  {
+    id: 5,
+    title: "رکوردشکنی قیمت مغز پسته سبز در بازار جهانی",
+    summary: "قیمت مغز پسته سبز ایرانی در بازارهای جهانی به بالاترین سطح خود در دو سال اخیر رسید و به کیلویی ۱۲ دلار معامله شد.",
+    content: "مغز پسته سبز ایرانی در بازارهای جهانی رکورد جدیدی ثبت کرد و به قیمت ۱۲ دلار در هر کیلوگرم رسید. این بالاترین قیمت مغز پسته ایرانی در دو سال گذشته است.\n\nدلیل اصلی این افزایش قیمت، کاهش تولید در آمریکا (بزرگترین رقیب ایران) و افزایش تقاضا از سوی صنایع شکلات‌سازی اروپا عنوان شده است. شرکت‌های بزرگ شکلات‌سازی اروپایی به دلیل کیفیت بالای مغز پسته ایرانی، حاضر به پرداخت قیمت بالاتر هستند.\n\nپیش‌بینی می‌شود با توجه به محدودیت عرضه جهانی، روند صعودی قیمت مغز پسته تا پایان سال ادامه یابد.",
+    category: "بازار جهانی",
+    date: "۱۹ خرداد ۱۴۰۵",
+    source: "تحریریه PesteOnline",
+    slug: "rekord-shekani-gheymat-maghz-peste-sabz",
+    relatedTypes: ["kernel"],
+    imageQuery: "Vibrant green pistachio kernels in a premium glass jar on a luxury confectionery counter, European chocolate factory setting, high-end food photography with soft diffused lighting, professional commercial product photography, rich emerald greens and warm cream tones",
+  },
+  {
+    id: 6,
+    title: "پسته کله قوچی رکورددار گرانی در بازار امروز",
+    summary: "پسته کله قوچی سایز ۲۸-۳۰ با رسیدن به کیلویی ۱,۹۵۰,۰۰۰ تومان، عنوان گران‌ترین رقم پسته بازار امروز را به خود اختصاص داد.",
+    content: "پسته کله قوچی امروز با ثبت قیمت ۱,۹۵۰,۰۰۰ تومان در هر کیلوگرم (سایز ۲۸-۳۰)، رکورد گران‌ترین رقم پسته بازار را شکست. این رقم که به «سلطان پسته‌های ایران» معروف است، ۵.۱ درصد نسبت به هفته گذشته افزایش قیمت داشته است.\n\nعمده‌فروشان بازار پسته می‌گویند: تقاضای کشورهای حوزه خلیج فارس برای پسته کله قوچی در آستانه فصل تعطیلات تابستانی به شدت افزایش یافته و این امر قیمت را تحت فشار قرار داده است.",
+    category: "بازار داخلی",
+    date: "۱۸ خرداد ۱۴۰۵",
+    source: "تحریریه PesteOnline",
+    slug: "peste-kaleh-ghouchi-rekorddar-gerani",
+    relatedTypes: ["kaleh-ghouchi"],
+    imageQuery: "Jumbo Kaleh Ghouchi pistachios displayed on luxury dark marble, dramatic spotlight effect on the largest Iranian pistachio variety, high-end food product photography, premium nuts retail display, sophisticated gold and cream palette with deep shadows",
+  },
+  {
+    id: 7,
+    title: "هند بزرگترین خریدار پسته احمد آقایی ایران باقی ماند",
+    summary: "آمارهای تجاری نشان می‌دهد هند برای پنجمین سال متوالی بزرگترین واردکننده پسته احمد آقایی ایران با سهم ۳۵ درصدی از کل صادرات است.",
+    content: "بر اساس آخرین آمارهای تجاری، هند همچنان بزرگترین بازار هدف برای پسته احمد آقایی ایران است و ۳۵ درصد از کل صادرات این رقم را به خود اختصاص می‌دهد.\n\nتاجران هندی به دلیل کیفیت مناسب و قیمت رقابتی پسته احمد آقایی، این رقم را به پسته آمریکا ترجیح می‌دهند. مصرف پسته در هند عمدتاً در شیرینی‌های سنتی، بستنی و آجیل مخلوط است.\n\nاین در حالی است که صادرات پسته ایران به چین نیز با رشد ۱۸ درصدی همراه بوده و رقابت بین این دو بازار بزرگ آسیایی برای پسته ایرانی شدت گرفته است.",
+    category: "صادرات",
+    date: "۱۷ خرداد ۱۴۰۵",
+    source: "تحریریه PesteOnline",
+    slug: "hend-bozorgtarin-kharidar-peste-ahmad-aghaei",
+    relatedTypes: ["ahmad-aghaei"],
+    imageQuery: "Indian spice market with sacks of Iranian pistachios prominently displayed, vibrant colorful bazaar atmosphere, traditional Indian trading scene with Persian nuts, cultural commerce photography, rich warm colors and textures, bustling marketplace energy",
+  },
+  {
+    id: 8,
+    title: "تکنولوژی جدید فرآوری پسته در رفسنجان راه‌اندازی شد",
+    summary: "بزرگترین واحد فرآوری پسته خاورمیانه با تکنولوژی لیزر سورتینگ در رفسنجان افتتاح شد که ظرفیت فرآوری ۵۰ تن در روز را دارد.",
+    content: "بزرگترین واحد فرآوری پسته خاورمیانه با سرمایه‌گذاری ۲۰۰ میلیارد تومانی بخش خصوصی در رفسنجان به بهره‌برداری رسید.\n\nاین واحد مجهز به تکنولوژی لیزر سورتینگ است که قادر به جداسازی پسته‌ها بر اساس رنگ، اندازه و کیفیت با دقت ۹۹.۸ درصد است. ظرفیت فرآوری این واحد ۵۰ تن در روز است که می‌تواند تحول بزرگی در صنعت پسته ایران ایجاد کند.\n\nمدیر این پروژه می‌گوید: با این تکنولوژی، کیفیت پسته صادراتی ایران به سطح استانداردهای جهانی می‌رسد و قدرت رقابت در بازارهای بین‌المللی افزایش می‌یابد.",
+    category: "صنعت",
+    date: "۱۶ خرداد ۱۴۰۵",
+    source: "تحریریه PesteOnline",
+    slug: "technology-jadid-faravari-peste-rafsanjan",
+    relatedTypes: ["akbari", "kaleh-ghouchi"],
+    imageQuery: "Modern pistachio processing facility interior with laser sorting machines, industrial food processing technology, clean sterile environment with conveyor belts of green pistachios, high-tech agricultural industry photography, sleek metallic surfaces with warm nut tones",
+  },
+  {
+    id: 9,
+    title: "پسته فندقی؛ گزینه اقتصادی با بیشترین حجم معاملات",
+    summary: "پسته فندقی امروز با قیمت ۱,۳۸۰,۰۰۰ تومان، بیشترین حجم معاملات روزانه را در بین ارقام پسته به خود اختصاص داد.",
+    content: "پسته فندقی امروز با ثبت ۱,۳۸۰,۰۰۰ تومان در هر کیلوگرم (سایز ۳۰-۳۲)، همچنان پرمعامله‌ترین رقم بازار پسته ایران است.\n\nبه دلیل قیمت اقتصادی و کاربرد گسترده در صنایع غذایی، شیرینی‌پزی و قنادی، حجم معاملات روزانه پسته فندقی ۴۰٪ بیشتر از مجموع سایر ارقام است.\n\nفعالان بازار می‌گویند: کارخانه‌های شیرینی‌پزی و بستنی‌سازی بزرگترین خریداران پسته فندقی هستند و با نزدیک شدن به فصل تابستان، تقاضا برای این رقم افزایش چشمگیری خواهد داشت.",
+    category: "بازار داخلی",
+    date: "۱۵ خرداد ۱۴۰۵",
+    source: "تحریریه PesteOnline",
+    slug: "peste-fandoghi-bishtarin-hajm-moamelat",
+    relatedTypes: ["fandoghi"],
+    imageQuery: "Bulk Fandoghi pistachios being weighed on traditional market scales, bustling Iranian nut bazaar with sacks of nuts, authentic trading scene with merchants and customers, warm ambient lighting, documentary style Persian marketplace photography",
+  },
+  {
+    id: 10,
+    title: "صادرات پسته ایران به چین ۱۸ درصد افزایش یافت",
+    summary: "بر اساس گزارش گمرک، صادرات پسته ایران به چین در سه ماهه اول ۱۴۰۵ با رشد ۱۸ درصدی نسبت به سال قبل همراه بوده است.",
+    content: "چین که دومین بازار بزرگ پسته ایران پس از هند است، در سه ماهه اول سال ۱۴۰۵ شاهد افزایش ۱۸ درصدی واردات پسته از ایران بوده است.\n\nکارشناسان دلیل این رشد را افزایش مصرف آجیل در جامعه رو به رشد طبقه متوسط چین و همچنین کاهش تولید پسته در آمریکا می‌دانند که باعث شده خریداران چینی به سمت پسته ایرانی متمایل شوند.\n\nپسته فندقی و احمد آقایی بیشترین سهم را در صادرات به چین دارند و عمدتاً در صنایع غذایی و شیرینی‌پزی چین استفاده می‌شوند.",
+    category: "صادرات",
+    date: "۱۴ خرداد ۱۴۰۵",
+    source: "تحریریه PesteOnline",
+    slug: "saderat-peste-iran-be-chin-18-darsad-roshd",
+    relatedTypes: ["ahmad-aghaei", "fandoghi"],
+    imageQuery: "Chinese wholesale market with Iranian pistachio imports on display, modern Asian trading floor with nut samples, international trade scene with Persian products, global commerce photography, clean contemporary aesthetic with warm nut tones",
+  },
+];
+
+export const newsCategories = [
+  { key: "all", label: "همه اخبار" },
+  { key: "بازار داخلی", label: "بازار داخلی" },
+  { key: "صادرات", label: "صادرات" },
+  { key: "تولید", label: "تولید" },
+  { key: "تحلیل بازار", label: "تحلیل بازار" },
+  { key: "بازار جهانی", label: "بازار جهانی" },
+  { key: "صنعت", label: "صنعت" },
+];
