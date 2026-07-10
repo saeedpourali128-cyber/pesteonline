@@ -1,0 +1,2 @@
+import SectionPlaceholder from "../components/SectionPlaceholder";
+export default function AdminMarketAnalysis(){return <SectionPlaceholder eyebrow="بازار پسته" title="تحلیل بازار" description="تحلیل روزانه بازار را با قالب یکدست، تصویر، خلاصه و تنظیمات سئو منتشر خواهی کرد." items={["عنوان و خلاصه تحلیل","متن کامل و تصویر","وضعیت بازار امروز","پیش‌نویس و زمان‌بندی انتشار","متاتایتل و متادیسکریپشن","آرشیو تحلیل‌های قبلی"]}/>}

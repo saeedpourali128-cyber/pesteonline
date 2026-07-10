@@ -2,7 +2,15 @@ import type { RouteObject } from "react-router-dom";
 import NotFound from "../pages/NotFound";
 import Home from "../pages/home/page";
 import ExpertAnalysisArchive from "../pages/expert-analysis/page";
+import AdminAuth from "../pages/admin/components/AdminAuth";
+import AdminLayout from "../pages/admin/components/AdminLayout";
+import AdminDashboard from "../pages/admin/dashboard/page";
 import AdminPrices from "../pages/admin/prices/page";
+import AdminArticles from "../pages/admin/articles/page";
+import AdminDesign from "../pages/admin/design/page";
+import AdminAnalytics from "../pages/admin/analytics/page";
+import AdminMarketAnalysis from "../pages/admin/analysis/page";
+import AdminSettings from "../pages/admin/settings/page";
 import PistachioTypePage from "../pages/pistachio-type/page";
 import PistachioArchivePage from "../pages/pistachio-type/archive-page";
 import NewsPage from "../pages/news/page";
@@ -34,7 +42,19 @@ const routes: RouteObject[] = [
 
   // Legacy / Redirect routes
   { path: "/expert-analysis", element: <ExpertAnalysisArchive /> },
-  { path: "/admin/prices", element: <AdminPrices /> },
+  {
+    path: "/admin",
+    element: <AdminAuth><AdminLayout /></AdminAuth>,
+    children: [
+      { index: true, element: <AdminDashboard /> },
+      { path: "prices", element: <AdminPrices /> },
+      { path: "articles", element: <AdminArticles /> },
+      { path: "analysis", element: <AdminMarketAnalysis /> },
+      { path: "design", element: <AdminDesign /> },
+      { path: "analytics", element: <AdminAnalytics /> },
+      { path: "settings", element: <AdminSettings /> },
+    ],
+  },
 
   // 404
   { path: "*", element: <NotFound /> },

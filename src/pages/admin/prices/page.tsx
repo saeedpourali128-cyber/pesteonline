@@ -1,476 +1,193 @@
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { CheckCircle2, Eye, EyeOff, History, Plus, RefreshCw, Save, Search, Send, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import type { Session } from "@supabase/supabase-js";
+import type { PistachioPrice } from "../types";
 
-interface PistachioPrice {
-  id: number;
-  variety: string;
-  size: string;
-  today_price: number;
-  yesterday_price: number;
-  weekly_change: number;
-  weekly_change_percent: number;
-  trend: "up" | "down";
-  is_visible: boolean;
-  sort_order: number;
-  created_at: string;
-  updated_at: string;
-}
+const demoPrices: PistachioPrice[] = [
+  { id: 1, variety: "پسته اکبری", size: "۲۸-۳۰", today_price: 1850000, yesterday_price: 1820000, weekly_change: 30000, weekly_change_percent: 1.65, trend: "up", is_visible: true, sort_order: 1, source: "میانگین بازار ایران", updated_at: new Date().toISOString() },
+  { id: 2, variety: "پسته احمد آقایی", size: "۲۸-۳۰", today_price: 1720000, yesterday_price: 1720000, weekly_change: 0, weekly_change_percent: 0, trend: "flat", is_visible: true, sort_order: 2, source: "میانگین بازار ایران", updated_at: new Date().toISOString() },
+  { id: 3, variety: "پسته فندقی", size: "۳۰-۳۲", today_price: 1380000, yesterday_price: 1360000, weekly_change: 20000, weekly_change_percent: 1.47, trend: "up", is_visible: true, sort_order: 3, source: "میانگین بازار ایران", updated_at: new Date().toISOString() },
+  { id: 4, variety: "پسته کله قوچی", size: "۲۸-۳۰", today_price: 1950000, yesterday_price: 1970000, weekly_change: -20000, weekly_change_percent: -1.02, trend: "down", is_visible: true, sort_order: 4, source: "میانگین بازار ایران", updated_at: new Date().toISOString() },
+  { id: 5, variety: "مغز پسته درجه یک", size: "—", today_price: 2800000, yesterday_price: 2780000, weekly_change: 20000, weekly_change_percent: 0.72, trend: "up", is_visible: true, sort_order: 5, source: "میانگین بازار ایران", updated_at: new Date().toISOString() },
+];
 
-function formatToman(value: number): string {
-  return value.toLocaleString("fa-IR");
-}
+const formatPrice = (value: number) => new Intl.NumberFormat("fa-IR").format(value || 0);
 
 export default function AdminPrices() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [authLoading, setAuthLoading] = useState(false);
-  const [authError, setAuthError] = useState("");
-  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
-
   const [prices, setPrices] = useState<PistachioPrice[]>([]);
+  const [drafts, setDrafts] = useState<Record<number, string>>({});
+  const [sources, setSources] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [preview, setPreview] = useState(false);
+  const [search, setSearch] = useState("");
+  const [notice, setNotice] = useState("");
+  const [usingDemo, setUsingDemo] = useState(false);
 
-  const [newVariety, setNewVariety] = useState("");
-  const [newSize, setNewSize] = useState("");
-  const [newTodayPrice, setNewTodayPrice] = useState("");
-  const [newYesterdayPrice, setNewYesterdayPrice] = useState("");
-  const [addError, setAddError] = useState("");
-
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState<Partial<PistachioPrice>>({});
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session) fetchPrices();
-      else setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (session) fetchPrices();
-      else setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const fetchPrices = useCallback(async () => {
+  const fetchPrices = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("pistachio_prices")
-      .select("*")
-      .order("sort_order", { ascending: true });
-
-    if (!error && data) setPrices(data as PistachioPrice[]);
+    const { data, error } = await supabase.from("pistachio_prices").select("*").order("sort_order", { ascending: true });
+    const list = !error && data?.length ? (data as PistachioPrice[]) : demoPrices;
+    setUsingDemo(Boolean(error || !data?.length));
+    setPrices(list);
+    setDrafts(Object.fromEntries(list.map((p) => [p.id, String(p.today_price)])));
+    setSources(Object.fromEntries(list.map((p) => [p.id, p.source || "میانگین بازار ایران"])));
     setLoading(false);
-  }, []);
-
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthLoading(true);
-    setAuthError("");
-
-    if (authMode === "login") {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) setAuthError(error.message);
-    } else {
-      const { error } = await supabase.auth.signUp({ email, password });
-      if (error) setAuthError(error.message);
-      else setAuthError("حساب ساخته شد. حالا می‌تونی لاگین کنی.");
-    }
-    setAuthLoading(false);
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setPrices([]);
-  };
+  useEffect(() => { fetchPrices(); }, []);
 
-  const handleAdd = async () => {
-    if (!newVariety || !newSize || !newTodayPrice || !newYesterdayPrice) {
-      setAddError("همه فیلدها الزامی هستند");
+  const filtered = useMemo(() => prices.filter((p) => `${p.variety} ${p.size}`.includes(search.trim())), [prices, search]);
+  const changedCount = prices.filter((p) => Number(drafts[p.id]) !== p.today_price || (sources[p.id] || "") !== (p.source || "میانگین بازار ایران")).length;
+
+  const toggleVisibility = async (price: PistachioPrice) => {
+    if (usingDemo) {
+      setPrices((prev) => prev.map((p) => p.id === price.id ? { ...p, is_visible: !p.is_visible } : p));
       return;
     }
-    setAddError("");
+    await supabase.from("pistachio_prices").update({ is_visible: !price.is_visible }).eq("id", price.id);
+    fetchPrices();
+  };
 
-    const today = parseFloat(newTodayPrice);
-    const yesterday = parseFloat(newYesterdayPrice);
-    const dailyChange = today - yesterday;
-    const dailyPercent = yesterday > 0 ? (dailyChange / yesterday) * 100 : 0;
-
-    const maxSort = prices.length > 0 ? Math.max(...prices.map((p) => p.sort_order)) : 0;
-
-    const { error } = await supabase.from("pistachio_prices").insert({
-      variety: newVariety,
-      size: newSize,
-      today_price: today,
-      yesterday_price: yesterday,
-      weekly_change: dailyChange,
-      weekly_change_percent: parseFloat(dailyPercent.toFixed(2)),
-      trend: dailyChange >= 0 ? "up" : "down",
-      sort_order: maxSort + 1,
+  const publish = async () => {
+    setSaving(true);
+    setNotice("");
+    const publishedAt = new Date().toISOString();
+    const next = prices.map((price) => {
+      const newPrice = Number(drafts[price.id] || price.today_price);
+      const change = newPrice - price.today_price;
+      const percent = price.today_price ? Number(((change / price.today_price) * 100).toFixed(2)) : 0;
+      return {
+        ...price,
+        yesterday_price: price.today_price,
+        today_price: newPrice,
+        weekly_change: change,
+        weekly_change_percent: percent,
+        trend: change > 0 ? "up" : change < 0 ? "down" : "flat",
+        source: sources[price.id] || "میانگین بازار ایران",
+        updated_at: publishedAt,
+      } as PistachioPrice;
     });
 
-    if (!error) {
-      setNewVariety("");
-      setNewSize("");
-      setNewTodayPrice("");
-      setNewYesterdayPrice("");
-      fetchPrices();
+    if (!usingDemo) {
+      for (const item of next) {
+        const { error } = await supabase.from("pistachio_prices").update({
+          yesterday_price: item.yesterday_price,
+          today_price: item.today_price,
+          weekly_change: item.weekly_change,
+          weekly_change_percent: item.weekly_change_percent,
+          trend: item.trend === "flat" ? "up" : item.trend,
+          source: item.source,
+          updated_at: item.updated_at,
+        }).eq("id", item.id);
+        if (error) console.error(error);
+
+        await supabase.from("daily_prices").upsert({
+          product_id: item.id,
+          price: item.today_price,
+          source: item.source,
+          price_date: new Date().toISOString().slice(0, 10),
+          published_at: publishedAt,
+        }, { onConflict: "product_id,price_date" });
+      }
     }
+
+    setPrices(next);
+    setDrafts(Object.fromEntries(next.map((p) => [p.id, String(p.today_price)])));
+    setNotice(usingDemo ? "پیش‌نمایش رابط با داده آزمایشی به‌روزرسانی شد. پس از اجرای SQL، داده‌ها در Supabase ذخیره می‌شوند." : "قیمت‌های امروز منتشر و در تاریخچه ثبت شدند.");
+    setPreview(false);
+    setSaving(false);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("مطمئنی می‌خوای این ردیف رو حذف کنی؟")) return;
-    const { error } = await supabase.from("pistachio_prices").delete().eq("id", id);
-    if (!error) fetchPrices();
+  const confirmUnchanged = () => {
+    setDrafts(Object.fromEntries(prices.map((p) => [p.id, String(p.today_price)])));
+    setNotice("قیمت‌های فعلی برای ثبت امروز آماده شدند. برای ثبت تاریخچه روی «انتشار قیمت‌ها» بزنید.");
   };
 
-  const handleToggleVisibility = async (id: number, current: boolean) => {
-    await supabase.from("pistachio_prices").update({ is_visible: !current }).eq("id", id);
-    fetchPrices();
-  };
+  if (loading) return <div className="p-10">در حال دریافت قیمت‌ها...</div>;
 
-  const handleSaveEdit = async (id: number) => {
-    setSaving(id);
-    const updates: Record<string, unknown> = {};
-    if (editForm.variety !== undefined) updates.variety = editForm.variety;
-    if (editForm.size !== undefined) updates.size = editForm.size;
-    if (editForm.today_price !== undefined) {
-      updates.today_price = editForm.today_price;
-      const yesterday = prices.find((p) => p.id === id)?.yesterday_price || 0;
-      const change = (editForm.today_price as number) - yesterday;
-      updates.weekly_change = change;
-      updates.weekly_change_percent = yesterday > 0 ? parseFloat(((change / yesterday) * 100).toFixed(2)) : 0;
-      updates.trend = change >= 0 ? "up" : "down";
-    }
-    if (editForm.yesterday_price !== undefined) {
-      updates.yesterday_price = editForm.yesterday_price;
-      const today = prices.find((p) => p.id === id)?.today_price || 0;
-      const change = today - (editForm.yesterday_price as number);
-      updates.weekly_change = change;
-      updates.weekly_change_percent = (editForm.yesterday_price as number) > 0 ? parseFloat(((change / (editForm.yesterday_price as number)) * 100).toFixed(2)) : 0;
-      updates.trend = change >= 0 ? "up" : "down";
-    }
-    updates.updated_at = new Date().toISOString();
-
-    await supabase.from("pistachio_prices").update(updates).eq("id", id);
-    setEditingId(null);
-    setSaving(null);
-    fetchPrices();
-  };
-
-  const handleMoveUp = async (index: number) => {
-    if (index === 0) return;
-    const current = prices[index];
-    const above = prices[index - 1];
-    await supabase.from("pistachio_prices").update({ sort_order: above.sort_order }).eq("id", current.id);
-    await supabase.from("pistachio_prices").update({ sort_order: current.sort_order }).eq("id", above.id);
-    fetchPrices();
-  };
-
-  const handleMoveDown = async (index: number) => {
-    if (index === prices.length - 1) return;
-    const current = prices[index];
-    const below = prices[index + 1];
-    await supabase.from("pistachio_prices").update({ sort_order: below.sort_order }).eq("id", current.id);
-    await supabase.from("pistachio_prices").update({ sort_order: current.sort_order }).eq("id", below.id);
-    fetchPrices();
-  };
-
-  const startEditing = (price: PistachioPrice) => {
-    setEditingId(price.id);
-    setEditForm({
-      variety: price.variety,
-      size: price.size,
-      today_price: price.today_price,
-      yesterday_price: price.yesterday_price,
-    });
-  };
-
-  // --- Auth Screen ---
-  if (!session) {
-    return (
-      <main className="min-h-screen flex items-center justify-center bg-background-50 px-4" dir="rtl">
-        <div className="w-full max-w-sm bg-white rounded-2xl border border-background-200/70 p-8">
-          <div className="text-center mb-6">
-            <span className="text-xl font-black text-foreground-950 tracking-tighter">
-              Peste<span className="text-primary-600">Online</span>
-            </span>
-            <p className="text-sm text-foreground-500 mt-2">پنل مدیریت قیمت‌ها</p>
-          </div>
-
-          <form onSubmit={handleAuth} className="flex flex-col gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-foreground-700 mb-1">ایمیل</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2.5 text-sm rounded-lg border border-background-200 bg-background-50 text-foreground-900 focus:outline-none focus:border-primary-400 transition-colors"
-                placeholder="admin@example.com"
-                required
-                dir="ltr"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-foreground-700 mb-1">رمز عبور</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2.5 text-sm rounded-lg border border-background-200 bg-background-50 text-foreground-900 focus:outline-none focus:border-primary-400 transition-colors"
-                placeholder="••••••"
-                required
-                dir="ltr"
-              />
-            </div>
-
-            {authError && (
-              <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">{authError}</p>
-            )}
-
-            <button
-              type="submit"
-              disabled={authLoading}
-              className="w-full py-2.5 rounded-lg bg-primary-500 hover:bg-primary-600 text-white text-sm font-bold transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60"
-            >
-              {authLoading ? "در حال ورود..." : authMode === "login" ? "ورود" : "ثبت‌نام"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => { setAuthMode(authMode === "login" ? "signup" : "login"); setAuthError(""); }}
-              className="text-xs text-primary-600 hover:text-primary-700 cursor-pointer text-center"
-            >
-              {authMode === "login" ? "حساب نداری؟ ثبت‌نام کن" : "حساب داری؟ ورود"}
-            </button>
-          </form>
-        </div>
-      </main>
-    );
-  }
-
-  // --- Admin Panel ---
   return (
-    <main className="min-h-screen bg-background-50 px-4 py-6" dir="rtl">
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <span className="text-lg font-black text-foreground-950 tracking-tighter">
-              Peste<span className="text-primary-600">Online</span>
-            </span>
-            <span className="text-xs bg-primary-100 text-primary-700 px-2.5 py-1 rounded-full font-semibold">پنل مدیریت</span>
+    <div className="p-4 md:p-8 max-w-[1600px] mx-auto">
+      <header className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-6">
+        <div>
+          <p className="text-sm text-emerald-700 font-bold">مدیریت روزانه بازار</p>
+          <h1 className="text-2xl md:text-3xl font-black mt-1">قیمت‌های روز پسته</h1>
+          <p className="text-slate-500 text-sm mt-2">قیمت جدید را وارد کن، پیش‌نمایش بگیر و سپس همه قیمت‌ها را یک‌جا منتشر کن.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button onClick={confirmUnchanged} className="rounded-xl bg-white border border-slate-200 px-4 py-3 text-sm font-bold flex items-center gap-2"><CheckCircle2 size={18}/> تأیید بدون تغییر</button>
+          <button onClick={() => setPreview(true)} className="rounded-xl bg-white border border-slate-200 px-4 py-3 text-sm font-bold flex items-center gap-2"><Eye size={18}/> پیش‌نمایش</button>
+          <button onClick={publish} disabled={saving} className="rounded-xl bg-emerald-600 text-white px-5 py-3 text-sm font-black flex items-center gap-2 disabled:opacity-60"><Send size={18}/> {saving ? "در حال انتشار..." : "انتشار قیمت‌ها"}</button>
+        </div>
+      </header>
+
+      {notice && <div className="mb-5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 text-sm">{notice}</div>}
+      {usingDemo && <div className="mb-5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3 text-sm">جدول Supabase هنوز آماده یا دارای داده نیست؛ پنل فعلاً با داده آزمایشی نمایش داده می‌شود.</div>}
+
+      <section className="grid sm:grid-cols-3 gap-4 mb-5">
+        <div className="rounded-2xl bg-slate-950 text-white p-5"><p className="text-xs text-slate-400">تعداد محصولات</p><p className="text-3xl font-black mt-2">{prices.length.toLocaleString("fa-IR")}</p></div>
+        <div className="rounded-2xl bg-white border border-slate-200 p-5"><p className="text-xs text-slate-500">تغییرات آماده انتشار</p><p className="text-3xl font-black mt-2 text-violet-700">{changedCount.toLocaleString("fa-IR")}</p></div>
+        <div className="rounded-2xl bg-white border border-slate-200 p-5"><p className="text-xs text-slate-500">آخرین بروزرسانی</p><p className="text-lg font-black mt-2">امروز، {new Date().toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" })}</p></div>
+      </section>
+
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="relative max-w-sm w-full">
+            <Search className="absolute right-3 top-3 text-slate-400" size={18}/>
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="جستجو در محصولات..." className="w-full rounded-xl border border-slate-200 bg-slate-50 pr-10 pl-4 py-2.5 outline-none focus:border-emerald-500" />
           </div>
-          <button
-            onClick={handleLogout}
-            className="text-xs text-foreground-500 hover:text-red-500 cursor-pointer transition-colors whitespace-nowrap"
-          >
-            خروج
-          </button>
+          <div className="text-xs text-slate-500 flex items-center gap-2"><History size={16}/> هر انتشار یک رکورد روزانه برای نمودار تاریخی می‌سازد.</div>
         </div>
 
-        <h1 className="text-xl font-black text-foreground-950 mb-6">مدیریت جدول قیمت پسته</h1>
-
-        {/* Add New Row */}
-        <div className="bg-white rounded-xl border border-background-200/70 p-4 mb-6">
-          <h3 className="text-sm font-bold text-foreground-800 mb-3">افزودن ردیف جدید</h3>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <input
-              type="text"
-              value={newVariety}
-              onChange={(e) => setNewVariety(e.target.value)}
-              placeholder="رقم (مثلاً: اکبری)"
-              className="px-3 py-2 text-sm rounded-lg border border-background-200 bg-background-50 text-foreground-900 focus:outline-none focus:border-primary-400"
-            />
-            <input
-              type="text"
-              value={newSize}
-              onChange={(e) => setNewSize(e.target.value)}
-              placeholder="سایز (مثلاً: ۲۸-۳۰)"
-              className="px-3 py-2 text-sm rounded-lg border border-background-200 bg-background-50 text-foreground-900 focus:outline-none focus:border-primary-400"
-            />
-            <input
-              type="number"
-              value={newTodayPrice}
-              onChange={(e) => setNewTodayPrice(e.target.value)}
-              placeholder="قیمت امروز (تومان)"
-              className="px-3 py-2 text-sm rounded-lg border border-background-200 bg-background-50 text-foreground-900 focus:outline-none focus:border-primary-400"
-            />
-            <input
-              type="number"
-              value={newYesterdayPrice}
-              onChange={(e) => setNewYesterdayPrice(e.target.value)}
-              placeholder="قیمت دیروز (تومان)"
-              className="px-3 py-2 text-sm rounded-lg border border-background-200 bg-background-50 text-foreground-900 focus:outline-none focus:border-primary-400"
-            />
-            <button
-              onClick={handleAdd}
-              className="px-4 py-2 rounded-lg bg-primary-500 hover:bg-primary-600 text-white text-sm font-bold transition-colors cursor-pointer whitespace-nowrap"
-            >
-              افزودن
-            </button>
-          </div>
-          {addError && <p className="text-xs text-red-500 mt-2">{addError}</p>}
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[1000px] text-sm">
+            <thead className="bg-slate-50 text-slate-600">
+              <tr>
+                <th className="text-right p-4">محصول</th><th className="text-right p-4">سایز</th><th className="text-right p-4">قیمت فعلی</th><th className="text-right p-4">قیمت جدید</th><th className="text-right p-4">تغییر</th><th className="text-right p-4">منبع استعلام</th><th className="text-center p-4">نمایش</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((price) => {
+                const next = Number(drafts[price.id] || 0);
+                const change = next - price.today_price;
+                return (
+                  <tr key={price.id} className="border-t border-slate-100 hover:bg-slate-50/70">
+                    <td className="p-4 font-black">{price.variety}</td>
+                    <td className="p-4 text-slate-500">{price.size}</td>
+                    <td className="p-4 font-bold">{formatPrice(price.today_price)} <span className="text-xs text-slate-400">تومان</span></td>
+                    <td className="p-3"><input inputMode="numeric" dir="ltr" value={drafts[price.id] || ""} onChange={(e) => setDrafts((d) => ({ ...d, [price.id]: e.target.value.replace(/[^0-9]/g, "") }))} className="w-44 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left font-black outline-none focus:border-emerald-500" /></td>
+                    <td className={`p-4 font-bold ${change > 0 ? "text-emerald-600" : change < 0 ? "text-rose-600" : "text-slate-400"}`}>{change === 0 ? "بدون تغییر" : `${change > 0 ? "+" : ""}${formatPrice(change)}`}</td>
+                    <td className="p-3"><input value={sources[price.id] || ""} onChange={(e) => setSources((s) => ({ ...s, [price.id]: e.target.value }))} className="w-48 rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-emerald-500" /></td>
+                    <td className="p-4 text-center"><button onClick={() => toggleVisibility(price)} className={`inline-flex items-center justify-center w-10 h-10 rounded-xl ${price.is_visible ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-400"}`}>{price.is_visible ? <Eye size={18}/> : <EyeOff size={18}/>}</button></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
 
-        {/* Price List */}
-        {loading ? (
-          <div className="text-center py-10 text-foreground-400 text-sm">در حال بارگذاری...</div>
-        ) : (
-          <div className="bg-white rounded-xl border border-background-200/70 overflow-hidden">
-            {/* Table Header */}
-            <div className="hidden md:flex items-center px-4 py-3 bg-background-100/70 border-b border-background-200/60 text-xs font-bold text-foreground-600">
-              <div className="w-10 text-center">#</div>
-              <div className="flex-1">رقم</div>
-              <div className="w-24 text-center">سایز</div>
-              <div className="w-36 text-left">قیمت امروز</div>
-              <div className="w-36 text-left">قیمت دیروز</div>
-              <div className="w-20 text-center">تغییر</div>
-              <div className="w-16 text-center">نمایش</div>
-              <div className="w-28 text-center">عملیات</div>
-            </div>
-
-            {prices.map((price, index) => (
-              <div
-                key={price.id}
-                className={`flex flex-col md:flex-row md:items-center px-4 py-3 border-b border-background-200/40 last:border-b-0 gap-2 md:gap-0 ${
-                  !price.is_visible ? "opacity-50 bg-background-50/50" : ""
-                }`}
-              >
-                {editingId === price.id ? (
-                  /* Edit Mode */
-                  <div className="flex flex-col md:flex-row gap-2 md:gap-3 flex-1">
-                    <div className="flex items-center gap-2 flex-1">
-                      <span className="text-xs text-foreground-400 w-8">{index + 1}</span>
-                      <input
-                        value={editForm.variety || ""}
-                        onChange={(e) => setEditForm({ ...editForm, variety: e.target.value })}
-                        className="flex-1 px-2 py-1.5 text-sm rounded border border-background-200 bg-white text-foreground-900"
-                      />
-                      <input
-                        value={editForm.size || ""}
-                        onChange={(e) => setEditForm({ ...editForm, size: e.target.value })}
-                        className="w-20 px-2 py-1.5 text-sm rounded border border-background-200 bg-white text-foreground-900"
-                      />
-                      <input
-                        type="number"
-                        value={editForm.today_price || ""}
-                        onChange={(e) => setEditForm({ ...editForm, today_price: parseFloat(e.target.value) })}
-                        className="w-32 px-2 py-1.5 text-sm rounded border border-background-200 bg-white text-foreground-900 text-left"
-                      />
-                      <input
-                        type="number"
-                        value={editForm.yesterday_price || ""}
-                        onChange={(e) => setEditForm({ ...editForm, yesterday_price: parseFloat(e.target.value) })}
-                        className="w-32 px-2 py-1.5 text-sm rounded border border-background-200 bg-white text-foreground-900 text-left"
-                      />
-                      <span className="text-xs text-foreground-400 whitespace-nowrap">
-                        {editForm.today_price && editForm.yesterday_price
-                          ? ((editForm.today_price as number) - (editForm.yesterday_price as number) >= 0 ? "+" : "") +
-                            (((editForm.today_price as number) - (editForm.yesterday_price as number)) / (editForm.yesterday_price as number) * 100).toFixed(2) + "%"
-                          : "—"}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => handleSaveEdit(price.id)}
-                        disabled={saving === price.id}
-                        className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold cursor-pointer whitespace-nowrap"
-                      >
-                        {saving === price.id ? "..." : "ذخیره"}
-                      </button>
-                      <button
-                        onClick={() => setEditingId(null)}
-                        className="px-3 py-1.5 rounded-lg bg-background-100 hover:bg-background-200 text-foreground-600 text-xs cursor-pointer whitespace-nowrap"
-                      >
-                        لغو
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  /* View Mode */
-                  <>
-                    <div className="flex items-center gap-2 md:hidden text-xs text-foreground-500">
-                      <span>ردیف {index + 1}</span>
-                      {!price.is_visible && <span className="text-red-400">(مخفی)</span>}
-                    </div>
-                    <div className="flex items-center gap-2 md:w-auto flex-1">
-                      <span className="hidden md:block w-10 text-center text-xs text-foreground-400">{index + 1}</span>
-                      <span className="text-sm font-bold text-foreground-900 min-w-[80px]">{price.variety}</span>
-                      <span className="text-xs bg-background-100 text-foreground-600 px-2 py-0.5 rounded-md">{price.size}</span>
-                    </div>
-                    <div className="flex items-center gap-3 md:w-auto mt-1 md:mt-0">
-                      <span className="text-sm font-bold text-foreground-900 w-32 text-left tabular-nums">{formatToman(price.today_price)}</span>
-                      <span className="text-sm text-foreground-500 w-32 text-left tabular-nums">{formatToman(price.yesterday_price)}</span>
-                      <span
-                        className={`text-xs font-bold w-20 text-center ${
-                          price.trend === "up" ? "text-emerald-600" : "text-red-500"
-                        }`}
-                      >
-                        {price.trend === "up" ? "+" : ""}
-                        {price.weekly_change_percent.toFixed(2)}%
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1 md:gap-2 mt-1 md:mt-0">
-                      <button
-                        onClick={() => handleToggleVisibility(price.id, price.is_visible)}
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer transition-colors ${
-                          price.is_visible
-                            ? "bg-emerald-100 text-emerald-600 hover:bg-emerald-200"
-                            : "bg-red-50 text-red-400 hover:bg-red-100"
-                        }`}
-                        title={price.is_visible ? "مخفی کردن" : "نمایش دادن"}
-                      >
-                        <i className={`${price.is_visible ? "ri-eye-line" : "ri-eye-off-line"} w-4 h-4 flex items-center justify-center`}></i>
-                      </button>
-                      <button
-                        onClick={() => startEditing(price)}
-                        className="w-8 h-8 rounded-lg bg-background-100 hover:bg-primary-100 text-foreground-400 hover:text-primary-600 flex items-center justify-center cursor-pointer transition-colors"
-                        title="ویرایش"
-                      >
-                        <i className="ri-pencil-line w-4 h-4 flex items-center justify-center"></i>
-                      </button>
-                      <button
-                        onClick={() => handleDelete(price.id)}
-                        className="w-8 h-8 rounded-lg bg-background-100 hover:bg-red-100 text-foreground-400 hover:text-red-500 flex items-center justify-center cursor-pointer transition-colors"
-                        title="حذف"
-                      >
-                        <i className="ri-delete-bin-line w-4 h-4 flex items-center justify-center"></i>
-                      </button>
-                      <button
-                        onClick={() => handleMoveUp(index)}
-                        disabled={index === 0}
-                        className="w-7 h-7 rounded-lg bg-background-100 text-foreground-400 flex items-center justify-center cursor-pointer hover:bg-background-200 disabled:opacity-30 disabled:cursor-default transition-colors"
-                        title="جابجایی بالا"
-                      >
-                        <i className="ri-arrow-up-s-line w-4 h-4 flex items-center justify-center"></i>
-                      </button>
-                      <button
-                        onClick={() => handleMoveDown(index)}
-                        disabled={index === prices.length - 1}
-                        className="w-7 h-7 rounded-lg bg-background-100 text-foreground-400 flex items-center justify-center cursor-pointer hover:bg-background-200 disabled:opacity-30 disabled:cursor-default transition-colors"
-                        title="جابجایی پایین"
-                      >
-                        <i className="ri-arrow-down-s-line w-4 h-4 flex items-center justify-center"></i>
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            ))}
-
-            {prices.length === 0 && (
-              <div className="text-center py-10 text-foreground-400 text-sm">هیچ ردیفی وجود ندارد</div>
-            )}
-          </div>
-        )}
+        <div className="p-4 border-t border-slate-200 flex justify-between items-center">
+          <button className="text-sm font-bold text-emerald-700 flex items-center gap-2"><Plus size={18}/> افزودن محصول جدید</button>
+          <button onClick={fetchPrices} className="text-sm text-slate-500 flex items-center gap-2"><RefreshCw size={16}/> تازه‌سازی</button>
+        </div>
       </div>
-    </main>
+
+      {preview && (
+        <div className="fixed inset-0 z-[100] bg-black/50 p-4 flex items-center justify-center" onClick={() => setPreview(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-5xl max-h-[90vh] overflow-auto rounded-3xl bg-white shadow-2xl">
+            <div className="sticky top-0 bg-white border-b border-slate-200 p-5 flex justify-between items-center">
+              <div><h2 className="text-xl font-black">پیش‌نمایش قیمت‌های امروز</h2><p className="text-sm text-slate-500 mt-1">نمایی نزدیک به جدول سایت قبل از انتشار</p></div>
+              <button onClick={() => setPreview(false)} className="w-10 h-10 rounded-xl bg-slate-100 grid place-items-center"><X/></button>
+            </div>
+            <div className="p-5">
+              <div className="rounded-2xl overflow-hidden border border-slate-200">
+                <table className="w-full text-sm"><thead className="bg-emerald-700 text-white"><tr><th className="p-4 text-right">محصول</th><th className="p-4 text-right">سایز</th><th className="p-4 text-right">قیمت امروز</th><th className="p-4 text-right">منبع</th></tr></thead><tbody>{prices.filter((p) => p.is_visible).map((p) => <tr key={p.id} className="border-t border-slate-100"><td className="p-4 font-black">{p.variety}</td><td className="p-4">{p.size}</td><td className="p-4 text-lg font-black">{formatPrice(Number(drafts[p.id]))} تومان</td><td className="p-4 text-slate-500">{sources[p.id]}</td></tr>)}</tbody></table>
+              </div>
+              <div className="mt-5 flex justify-end gap-3"><button onClick={() => setPreview(false)} className="rounded-xl border border-slate-200 px-5 py-3 font-bold">بازگشت به ویرایش</button><button onClick={publish} className="rounded-xl bg-emerald-600 text-white px-5 py-3 font-black flex items-center gap-2"><Save size={18}/> تأیید و انتشار</button></div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

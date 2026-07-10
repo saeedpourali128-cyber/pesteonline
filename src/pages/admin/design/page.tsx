@@ -1,0 +1,2 @@
+import SectionPlaceholder from "../components/SectionPlaceholder";
+export default function AdminDesign(){return <SectionPlaceholder eyebrow="ظاهر سایت" title="طراحی و سکشن‌ها" description="مدیریت طراحی با بلوک‌های کنترل‌شده انجام می‌شود تا تغییرات سریع باشند و سرعت و واکنش‌گرایی سایت آسیب نبیند." items={["بنر اصلی و CTA","رنگ‌ها و فونت‌ها","نمایش یا مخفی‌سازی سکشن‌ها","تغییر ترتیب بخش‌ها","مدیریت لوگو و فاوآیکن","پیش‌نمایش موبایل و دسکتاپ"]}/>}

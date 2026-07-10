@@ -1,0 +1,2 @@
+import SectionPlaceholder from "../components/SectionPlaceholder";
+export default function AdminSettings(){return <SectionPlaceholder eyebrow="تنظیمات" title="تنظیمات عمومی" description="اطلاعات اصلی سایت، تماس‌ها، شبکه‌های اجتماعی و تنظیمات انتشار در این بخش کنترل می‌شوند." items={["اطلاعات برند","شماره تماس و شبکه‌ها","واحد پول و فرمت قیمت","تنظیمات زمان و تاریخ","مدیریت فایل‌ها و تصاویر","تنظیمات اتصال سرویس‌ها"]}/>}

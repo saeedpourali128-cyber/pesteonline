@@ -1,0 +1,2 @@
+import SectionPlaceholder from "../components/SectionPlaceholder";
+export default function AdminArticles(){return <SectionPlaceholder eyebrow="مدیریت محتوا" title="مقالات و اخبار" description="مقاله‌های سئو، اخبار بازار و محتوای آموزشی را از این بخش ایجاد، پیش‌نمایش و منتشر می‌کنی." items={["ویرایشگر مقاله و تصویر شاخص","عنوان، اسلاگ و متادیتای سئو","پیش‌نویس، پیش‌نمایش و انتشار","دسته‌بندی و برچسب‌ها","لینک‌سازی داخلی پیشنهادی","مدیریت وضعیت ایندکس"]}/>}

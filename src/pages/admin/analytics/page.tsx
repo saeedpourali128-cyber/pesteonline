@@ -1,0 +1,2 @@
+import SectionPlaceholder from "../components/SectionPlaceholder";
+export default function AdminAnalytics(){return <SectionPlaceholder eyebrow="داده و سئو" title="آمار سایت" description="این صفحه برای دریافت کش‌شده و امن داده‌های Google Analytics و Search Console طراحی شده است تا روی سرعت سایت عمومی اثری نگذارد." items={["کاربران و بازدیدها","کلیک و ایمپرشن گوگل","CTR و میانگین رتبه","صفحات پربازدید","کوئری‌های برتر","فرصت‌های رشد سئو"]}/>}
