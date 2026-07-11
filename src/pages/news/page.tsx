@@ -8,8 +8,23 @@ import {
 import { allNewsArticles, newsCategories } from "@/mocks/newsArticles";
 import { pistachioTypes } from "@/mocks/pistachioTypeData";
 import ScrollReveal from "@/components/base/ScrollReveal";
+import { formatPersianDate, getPublishedArticles, type ArticleRecord } from "@/lib/articles";
 
 const ITEMS_PER_PAGE = 9;
+
+interface DisplayNewsArticle {
+  id: string;
+  title: string;
+  summary: string;
+  content: string;
+  category: string;
+  date: string;
+  source: string;
+  slug: string;
+  relatedTypes: string[];
+  coverImage?: string | null;
+}
+
 
 const newsImages: Record<number, string> = {
   1: "https://readdy.ai/api/search-image?query=Premium%20Akbari%20pistachios%20arranged%20on%20a%20market%20stall%2C%20rich%20green%20kernels%20visible%20through%20split%20shells%2C%20vibrant%20bazaar%20atmosphere%20with%20warm%20golden%20lighting%2C%20Persian%20marketplace%20photography%2C%20detailed%20close-up%20of%20luxury%20nuts%2C%20editorial%20food%20journalism%20style%2C%20warm%20amber%20and%20green%20tones&width=600&height=400&seq=news-img-01&orientation=landscape",
@@ -26,17 +41,52 @@ const newsImages: Record<number, string> = {
 
 export default function NewsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [databaseArticles, setDatabaseArticles] = useState<ArticleRecord[]>([]);
   const currentPage = Number(searchParams.get("page")) || 1;
   const activeCategory = searchParams.get("category") || "all";
 
   useEffect(() => {
     document.title = "اخبار بازار پسته | آخرین اخبار قیمت، صادرات و تولید پسته ایران | PesteOnline";
+
+    let active = true;
+    void getPublishedArticles(["news", "article"])
+      .then((rows) => {
+        if (active) setDatabaseArticles(rows);
+      })
+      .catch((error) => console.error("Loading published news failed", error));
+
+    return () => {
+      active = false;
+    };
   }, []);
 
+  const displayArticles = useMemo<DisplayNewsArticle[]>(() => {
+    const liveArticles = databaseArticles.map((article) => ({
+      id: `db-${article.id}`,
+      title: article.title,
+      summary: article.excerpt ?? "",
+      content: article.content ?? "",
+      category: article.content_type === "article" ? "صنعت" : "بازار داخلی",
+      date: formatPersianDate(article.published_at ?? article.created_at),
+      source: "تحریریه PesteOnline",
+      slug: article.slug,
+      relatedTypes: [],
+      coverImage: article.cover_image,
+    }));
+
+    const builtInArticles = allNewsArticles.map((article) => ({
+      ...article,
+      id: `mock-${article.id}`,
+      coverImage: newsImages[article.id] || newsImages[1],
+    }));
+
+    return [...liveArticles, ...builtInArticles];
+  }, [databaseArticles]);
+
   const filteredArticles = useMemo(() => {
-    if (activeCategory === "all") return allNewsArticles;
-    return allNewsArticles.filter((a) => a.category === activeCategory);
-  }, [activeCategory]);
+    if (activeCategory === "all") return displayArticles;
+    return displayArticles.filter((a) => a.category === activeCategory);
+  }, [activeCategory, displayArticles]);
 
   const totalPages = Math.ceil(filteredArticles.length / ITEMS_PER_PAGE);
   const safePage = Math.min(Math.max(currentPage, 1), totalPages || 1);
@@ -122,13 +172,15 @@ export default function NewsPage() {
                   <ScrollReveal key={article.id} delay={idx * 60} direction="up">
                     <article className="bg-white rounded-xl border border-background-200/70 overflow-hidden h-full flex flex-col group cursor-pointer">
                       <div className="relative h-48 overflow-hidden">
-                        <img
-                          src={newsImages[article.id] || newsImages[1]}
-                          alt={article.title}
-                          title={article.title}
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                          loading="lazy"
-                        />
+                        <a href={`/articles/${article.slug}`} aria-label={article.title}>
+                          <img
+                            src={article.coverImage || newsImages[1]}
+                            alt={article.title}
+                            title={article.title}
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            loading="lazy"
+                          />
+                        </a>
                         <div className="absolute top-3 right-3">
                           <span className="text-xs bg-white/90 backdrop-blur-sm text-foreground-700 rounded-full px-2.5 py-1 font-medium">
                             {article.category}
@@ -141,7 +193,7 @@ export default function NewsPage() {
                           <span className="text-xs text-foreground-300">{article.source}</span>
                         </div>
                         <h3 className="text-sm md:text-base font-bold text-foreground-950 mb-2 leading-[1.5] group-hover:text-primary-600 transition-colors">
-                          {article.title}
+                          <a href={`/articles/${article.slug}`}>{article.title}</a>
                         </h3>
                         <p className="text-xs md:text-sm text-foreground-500 leading-[1.9] font-light flex-1">
                           {article.summary}

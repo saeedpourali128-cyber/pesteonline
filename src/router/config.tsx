@@ -15,6 +15,7 @@ import PistachioTypePage from "../pages/pistachio-type/page";
 import PistachioArchivePage from "../pages/pistachio-type/archive-page";
 import NewsPage from "../pages/news/page";
 import AnalysisPage from "../pages/analysis/page";
+import ArticlePage from "../pages/article/page";
 
 const routes: RouteObject[] = [
   // Homepage
@@ -39,6 +40,7 @@ const routes: RouteObject[] = [
   // Content Hubs
   { path: "/news", element: <NewsPage /> },
   { path: "/analysis", element: <AnalysisPage /> },
+  { path: "/articles/:slug", element: <ArticlePage /> },
 
   // Legacy / Redirect routes
   { path: "/expert-analysis", element: <ExpertAnalysisArchive /> },

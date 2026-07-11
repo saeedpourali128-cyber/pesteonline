@@ -8,8 +8,22 @@ import {
 import { allAnalysisArticles, analysisCategories } from "@/mocks/analysisArticles";
 import { pistachioTypes } from "@/mocks/pistachioTypeData";
 import ScrollReveal from "@/components/base/ScrollReveal";
+import { formatPersianDate, getPublishedArticles, type ArticleRecord } from "@/lib/articles";
 
 const ITEMS_PER_PAGE = 9;
+
+interface DisplayAnalysisArticle {
+  id: string;
+  analyst: string;
+  title: string;
+  content: string;
+  date: string;
+  category: string;
+  slug: string;
+  relatedTypes: string[];
+  coverImage?: string | null;
+}
+
 
 const analystImages: Record<number, string> = {
   1: "https://readdy.ai/api/search-image?query=Professional%20middle%20eastern%20man%20portrait%20in%20business%20suit%2C%20warm%20studio%20lighting%2C%20clean%20white%20background%2C%20professional%20headshot%20photography%2C%20friendly%20expression%2C%20corporate%20style&width=120&height=120&seq=analysis-01&orientation=squarish",
@@ -34,17 +48,51 @@ const analystImages: Record<number, string> = {
 
 export default function AnalysisPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [databaseArticles, setDatabaseArticles] = useState<ArticleRecord[]>([]);
   const currentPage = Number(searchParams.get("page")) || 1;
   const activeCategory = searchParams.get("category") || "all";
 
   useEffect(() => {
     document.title = "تحلیل بازار پسته | تحلیل‌های کارشناسی و پیش‌بینی قیمت | PesteOnline";
+
+    let active = true;
+    void getPublishedArticles(["analysis"])
+      .then((rows) => {
+        if (active) setDatabaseArticles(rows);
+      })
+      .catch((error) => console.error("Loading published analyses failed", error));
+
+    return () => {
+      active = false;
+    };
   }, []);
 
+  const displayArticles = useMemo<DisplayAnalysisArticle[]>(() => {
+    const liveArticles = databaseArticles.map((article) => ({
+      id: `db-${article.id}`,
+      analyst: "تحریریه PesteOnline",
+      title: article.title,
+      content: article.excerpt || article.content || "",
+      date: formatPersianDate(article.published_at ?? article.created_at),
+      category: "تحلیل قیمت",
+      slug: article.slug,
+      relatedTypes: [],
+      coverImage: article.cover_image,
+    }));
+
+    const builtInArticles = allAnalysisArticles.map((article) => ({
+      ...article,
+      id: `mock-${article.id}`,
+      coverImage: analystImages[article.id] || analystImages[1],
+    }));
+
+    return [...liveArticles, ...builtInArticles];
+  }, [databaseArticles]);
+
   const filteredArticles = useMemo(() => {
-    if (activeCategory === "all") return allAnalysisArticles;
-    return allAnalysisArticles.filter((a) => a.category === activeCategory);
-  }, [activeCategory]);
+    if (activeCategory === "all") return displayArticles;
+    return displayArticles.filter((a) => a.category === activeCategory);
+  }, [activeCategory, displayArticles]);
 
   const totalPages = Math.ceil(filteredArticles.length / ITEMS_PER_PAGE);
   const safePage = Math.min(Math.max(currentPage, 1), totalPages || 1);
@@ -100,7 +148,7 @@ export default function AnalysisPage() {
                 آرشیو کامل تحلیل‌ها و پیش‌بینی‌های <strong>کارشناسان بازار پسته</strong> — از اقتصاد کشاورزی تا تجارت بین‌الملل و <strong>صادرات پسته ایران</strong>
               </p>
               <div className="mt-4 text-xs text-foreground-300 font-light">
-                {allAnalysisArticles.length} تحلیل کارشناسی
+                {displayArticles.length} تحلیل کارشناسی
               </div>
             </ScrollReveal>
           </div>
@@ -137,7 +185,7 @@ export default function AnalysisPage() {
                       <div className="flex items-center gap-3 mb-4">
                         <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 bg-background-200">
                           <img
-                            src={analystImages[article.id] || analystImages[1]}
+                            src={article.coverImage || analystImages[1]}
                             alt={article.analyst}
                             title={`${article.analyst} - ${article.title}`}
                             className="w-full h-full object-cover"
@@ -146,7 +194,9 @@ export default function AnalysisPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-bold text-foreground-950 truncate">{article.analyst}</div>
-                          <div className="text-xs text-foreground-400 truncate">{article.title}</div>
+                          <div className="text-xs text-foreground-400 line-clamp-2">
+                            <a href={`/articles/${article.slug}`} className="hover:text-accent-700">{article.title}</a>
+                          </div>
                           <div className="flex items-center gap-2 mt-1">
                             <span className="text-xs text-foreground-300">{article.date}</span>
                             <span className="text-xs bg-accent-50 text-accent-600 rounded-full px-2 py-0.5 font-medium">{article.category}</span>
@@ -154,6 +204,13 @@ export default function AnalysisPage() {
                         </div>
                       </div>
                       <p className="text-sm text-foreground-600 leading-[1.9] font-light flex-1">{article.content}</p>
+                      <a
+                        href={`/articles/${article.slug}`}
+                        className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-accent-700 hover:text-accent-800"
+                      >
+                        مطالعه کامل تحلیل
+                        <i className="ri-arrow-left-line" />
+                      </a>
                       {article.relatedTypes.length > 0 && (
                         <div className="flex flex-wrap gap-1.5 mt-4 pt-4 border-t border-background-100">
                           {article.relatedTypes.map((typeKey) => {
