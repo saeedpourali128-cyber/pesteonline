@@ -67,32 +67,39 @@ export default function AnalysisPage() {
     };
   }, []);
 
-  const displayArticles = useMemo<DisplayAnalysisArticle[]>(() => {
-    const liveArticles = databaseArticles.map((article) => ({
-      id: `db-${article.id}`,
-      analyst: "تحریریه PesteOnline",
-      title: article.title,
-      content: article.excerpt || article.content || "",
-      date: formatPersianDate(article.published_at ?? article.created_at),
-      category: "تحلیل قیمت",
-      slug: article.slug,
-      relatedTypes: [],
-      coverImage: article.cover_image,
-    }));
+  const usingLiveAnalyses = databaseArticles.length > 0;
 
-    const builtInArticles = allAnalysisArticles.map((article) => ({
+  const displayArticles = useMemo<DisplayAnalysisArticle[]>(() => {
+    if (databaseArticles.length > 0) {
+      return databaseArticles.map((article) => ({
+        id: `db-${article.id}`,
+        analyst: "تحریریه PesteOnline",
+        title: article.title,
+        content: article.excerpt || article.content || "",
+        date: formatPersianDate(article.published_at ?? article.created_at),
+        category: "تحلیل بازار",
+        slug: article.slug,
+        relatedTypes: [],
+        coverImage: article.cover_image,
+      }));
+    }
+
+    // محتوای داخلی قدیمی فقط تا زمان انتشار نخستین تحلیل واقعی نمایش داده می‌شود.
+    return allAnalysisArticles.map((article) => ({
       ...article,
       id: `mock-${article.id}`,
       coverImage: analystImages[article.id] || analystImages[1],
     }));
-
-    return [...liveArticles, ...builtInArticles];
   }, [databaseArticles]);
 
+  const visibleCategories = usingLiveAnalyses
+    ? [{ key: "all", label: "همه تحلیل‌ها" }]
+    : analysisCategories;
+
   const filteredArticles = useMemo(() => {
-    if (activeCategory === "all") return displayArticles;
+    if (usingLiveAnalyses || activeCategory === "all") return displayArticles;
     return displayArticles.filter((a) => a.category === activeCategory);
-  }, [activeCategory, displayArticles]);
+  }, [activeCategory, displayArticles, usingLiveAnalyses]);
 
   const totalPages = Math.ceil(filteredArticles.length / ITEMS_PER_PAGE);
   const safePage = Math.min(Math.max(currentPage, 1), totalPages || 1);
@@ -158,12 +165,12 @@ export default function AnalysisPage() {
           <div className="max-w-7xl mx-auto">
             {/* Category Filter */}
             <div className="flex items-center gap-1.5 flex-wrap mb-8 overflow-x-auto pb-2">
-              {analysisCategories.map((cat) => (
+              {visibleCategories.map((cat) => (
                 <button
                   key={cat.key}
                   onClick={() => handleCategoryChange(cat.key)}
                   className={`rounded-full px-4 py-1.5 text-xs md:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap ${
-                    activeCategory === cat.key
+                    (usingLiveAnalyses ? "all" : activeCategory) === cat.key
                       ? "bg-accent-500 text-foreground-950"
                       : "bg-white text-foreground-600 hover:bg-background-100 border border-background-200/60"
                   }`}

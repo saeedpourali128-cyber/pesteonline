@@ -1,5 +1,11 @@
-import { expertAnalyses } from "@/mocks/marketContent";
+import { useEffect, useMemo, useState } from "react";
 import ScrollReveal from "@/components/base/ScrollReveal";
+import { expertAnalyses } from "@/mocks/marketContent";
+import {
+  formatPersianDate,
+  getPublishedArticles,
+  type ArticleRecord,
+} from "@/lib/articles";
 
 const analystImages = [
   "https://readdy.ai/api/search-image?query=Professional%20middle%20eastern%20man%20portrait%20in%20business%20suit%2C%20warm%20studio%20lighting%2C%20clean%20white%20background%2C%20professional%20headshot%20photography%2C%20friendly%20expression%2C%20corporate%20style&width=120&height=120&seq=analyst-01&orientation=squarish",
@@ -10,14 +16,64 @@ const analystImages = [
   "https://readdy.ai/api/search-image?query=Professional%20middle%20eastern%20man%20portrait%20in%20business%20casual%20attire%2C%20warm%20studio%20lighting%2C%20clean%20white%20background%2C%20professional%20headshot%20photography%2C%20authoritative%20expression%2C%20executive%20style&width=120&height=120&seq=analyst-06&orientation=squarish",
 ];
 
+type DisplayAnalysis = {
+  id: string;
+  analyst: string;
+  title: string;
+  content: string;
+  date: string;
+  slug: string | null;
+  image: string;
+};
+
 export default function ExpertAnalysis() {
-  const featured = expertAnalyses.slice(0, 6);
-  const col1 = featured.slice(0, 2);
-  const col2 = featured.slice(2, 4);
-  const col3 = featured.slice(4, 6);
+  const [databaseAnalyses, setDatabaseAnalyses] = useState<ArticleRecord[]>([]);
+
+  useEffect(() => {
+    let active = true;
+
+    void getPublishedArticles(["analysis"])
+      .then((rows) => {
+        if (active) setDatabaseAnalyses(rows.slice(0, 6));
+      })
+      .catch((error) =>
+        console.error("Loading homepage market analyses failed", error),
+      );
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const featured = useMemo<DisplayAnalysis[]>(() => {
+    if (databaseAnalyses.length > 0) {
+      return databaseAnalyses.map((analysis, index) => ({
+        id: `db-${analysis.id}`,
+        analyst: "تحریریه PesteOnline",
+        title: analysis.title,
+        content: analysis.excerpt || analysis.content || "",
+        date: formatPersianDate(analysis.published_at ?? analysis.created_at),
+        slug: analysis.slug,
+        image: analysis.cover_image || analystImages[index % analystImages.length],
+      }));
+    }
+
+    return expertAnalyses.slice(0, 6).map((analysis, index) => ({
+      id: `mock-${analysis.id}`,
+      analyst: analysis.analyst,
+      title: analysis.title,
+      content: analysis.content,
+      date: analysis.date,
+      slug: null,
+      image: analystImages[index % analystImages.length],
+    }));
+  }, [databaseAnalyses]);
 
   return (
-    <section id="expert-analysis" className="w-full bg-background-100/60 py-12 md:py-16 px-4 md:px-6">
+    <section
+      id="expert-analysis"
+      className="w-full bg-background-100/60 py-12 md:py-16 px-4 md:px-6"
+    >
       <div className="max-w-7xl mx-auto">
         <ScrollReveal>
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8 md:mb-10">
@@ -41,49 +97,54 @@ export default function ExpertAnalysis() {
           </div>
         </ScrollReveal>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
-          {[col1, col2, col3].map((col, colIdx) => (
-            <div key={colIdx} className="flex flex-col gap-4 md:gap-5">
-              {col.map((analysis, idx) => (
-                <ScrollReveal key={analysis.id} delay={colIdx * 100 + idx * 80} direction="up">
-                  <article
-                    className="bg-white rounded-xl p-4 md:p-5 border border-background-200/70"
-                    aria-label={`تحلیل ${analysis.analyst} - ${analysis.title}`}
-                    style={{
-                      marginTop: (colIdx === 1 && idx === 0) || (colIdx === 2 && idx === 1) ? "1.5rem" : "0",
-                    }}
-                  >
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-background-200">
-                        <img
-                          src={analystImages[analysis.id - 1]}
-                          alt={analysis.analyst}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-bold text-foreground-950 truncate">
-                          {analysis.analyst}
-                        </div>
-                        <div className="text-xs text-foreground-400 truncate flex items-center gap-1">
-                          <span className="text-primary-500">@</span>
-                          {analysis.title}
-                        </div>
-                      </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
+          {featured.map((analysis, index) => (
+            <ScrollReveal
+              key={analysis.id}
+              delay={index * 70}
+              direction="up"
+            >
+              <article
+                className="bg-white rounded-xl p-4 md:p-5 border border-background-200/70 h-full flex flex-col"
+                aria-label={`تحلیل ${analysis.analyst} - ${analysis.title}`}
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0 bg-background-200">
+                    <img
+                      src={analysis.image}
+                      alt={analysis.analyst}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold text-foreground-950 truncate">
+                      {analysis.analyst}
                     </div>
-                    <p className="text-sm text-foreground-600 leading-[1.8] font-light relative pe-4">
-                      <span className="absolute top-0 end-0 text-2xl text-primary-200 font-serif leading-none">
-                        &quot;
-                      </span>
-                      {analysis.content}
-                      <span className="text-2xl text-primary-200 font-serif leading-none ms-1">
-                        &quot;
-                      </span>
-                    </p>
-                  </article>
-                </ScrollReveal>
-              ))}
-            </div>
+                    <div className="text-xs text-foreground-400 line-clamp-1">
+                      {analysis.title}
+                    </div>
+                    <div className="text-[11px] text-foreground-300 mt-0.5">
+                      {analysis.date}
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-sm text-foreground-600 leading-[1.9] font-light flex-1 line-clamp-5">
+                  {analysis.content}
+                </p>
+
+                {analysis.slug && (
+                  <a
+                    href={`/articles/${analysis.slug}`}
+                    className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-primary-600 hover:text-primary-700"
+                  >
+                    مطالعه کامل تحلیل
+                    <i className="ri-arrow-left-line" />
+                  </a>
+                )}
+              </article>
+            </ScrollReveal>
           ))}
         </div>
 
@@ -93,54 +154,22 @@ export default function ExpertAnalysis() {
               مطالب مرتبط:
             </span>
             <div className="flex flex-wrap justify-center gap-2">
-              <a
-                href="#prices"
-                title="جدول قیمت روز پسته ایران - قیمت لحظه‌ای انواع پسته"
-                className="inline-flex items-center gap-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 text-xs font-medium rounded-full px-3 py-1.5 cursor-pointer transition-colors duration-200 whitespace-nowrap"
-              >
-                <i className="ri-arrow-left-line w-3.5 h-3.5 flex items-center justify-center"></i>
-                <span>قیمت لحظه‌ای پسته ایران</span>
-              </a>
-              <a
-                href="#charts"
-                title="نمودار تاریخچه قیمت پسته - تحلیل تکنیکال بازار"
-                className="inline-flex items-center gap-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 text-xs font-medium rounded-full px-3 py-1.5 cursor-pointer transition-colors duration-200 whitespace-nowrap"
-              >
-                <i className="ri-arrow-left-line w-3.5 h-3.5 flex items-center justify-center"></i>
-                <span>تاریخچه قیمت پسته</span>
-              </a>
-              <a
-                href="#market-notes"
-                title="یادداشت روزانه بازار پسته - تحلیل و پیش‌بینی"
-                className="inline-flex items-center gap-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 text-xs font-medium rounded-full px-3 py-1.5 cursor-pointer transition-colors duration-200 whitespace-nowrap"
-              >
-                <i className="ri-arrow-left-line w-3.5 h-3.5 flex items-center justify-center"></i>
-                <span>یادداشت روز بازار پسته</span>
-              </a>
-              <a
-                href="#faq"
-                title="سوالات متداول بازار پسته - پرسش و پاسخ تخصصی"
-                className="inline-flex items-center gap-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 text-xs font-medium rounded-full px-3 py-1.5 cursor-pointer transition-colors duration-200 whitespace-nowrap"
-              >
-                <i className="ri-arrow-left-line w-3.5 h-3.5 flex items-center justify-center"></i>
-                <span>سوالات متداول پسته</span>
-              </a>
-              <a
-                href="/news"
-                title="آرشیو کامل اخبار بازار پسته - آخرین اخبار"
-                className="inline-flex items-center gap-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 text-xs font-medium rounded-full px-3 py-1.5 cursor-pointer transition-colors duration-200 whitespace-nowrap"
-              >
-                <i className="ri-arrow-left-line w-3.5 h-3.5 flex items-center justify-center"></i>
-                <span>اخبار بازار پسته</span>
-              </a>
-              <a
-                href="/akbari"
-                title="قیمت روز پسته اکبری - نمودار و تحلیل"
-                className="inline-flex items-center gap-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 text-xs font-medium rounded-full px-3 py-1.5 cursor-pointer transition-colors duration-200 whitespace-nowrap"
-              >
-                <i className="ri-arrow-left-line w-3.5 h-3.5 flex items-center justify-center"></i>
-                <span>قیمت پسته اکبری</span>
-              </a>
+              {[
+                ["#prices", "قیمت لحظه‌ای پسته ایران"],
+                ["#charts", "تاریخچه قیمت پسته"],
+                ["#market-notes", "یادداشت روز بازار پسته"],
+                ["/news", "اخبار بازار پسته"],
+                ["/akbari", "قیمت پسته اکبری"],
+              ].map(([href, label]) => (
+                <a
+                  key={href}
+                  href={href}
+                  className="inline-flex items-center gap-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 text-xs font-medium rounded-full px-3 py-1.5 cursor-pointer transition-colors duration-200 whitespace-nowrap"
+                >
+                  <i className="ri-arrow-left-line w-3.5 h-3.5 flex items-center justify-center"></i>
+                  <span>{label}</span>
+                </a>
+              ))}
             </div>
           </div>
         </ScrollReveal>
