@@ -319,11 +319,56 @@
       .honeypot-field { position: absolute; left: -9999px; top: -9999px; opacity: 0; pointer-events: none; }
     </style>
   </head>
-  <body>
+  <script>
+  (() => {
+    let chatLoaded = false;
+    let chatTimer;
+
+    const interactionEvents = ["pointerdown", "keydown"];
+
+    function removeChatListeners() {
+      interactionEvents.forEach((eventName) => {
+        window.removeEventListener(eventName, loadChat);
+      });
+    }
+
+    function loadChat() {
+      if (chatLoaded) return;
+
+      chatLoaded = true;
+      clearTimeout(chatTimer);
+      removeChatListeners();
+
+      const script = document.createElement("script");
+
+      script.src =
+        "https://readdy.ai/api/public/assistant/widget?projectId=66e582ad-149b-4500-8fd9-dcd74149d34a";
+
+      script.async = true;
+      script.setAttribute("data-delayed-chat", "true");
+
+      document.body.appendChild(script);
+    }
+
+    interactionEvents.forEach((eventName) => {
+      window.addEventListener(eventName, loadChat, {
+        once: true,
+        passive: true,
+      });
+    });
+
+    window.addEventListener(
+      "load",
+      () => {
+        chatTimer = window.setTimeout(loadChat, 8000);
+      },
+      { once: true },
+    );
+  })();
+</script><body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script 
-      src="https://readdy.ai/api/public/assistant/widget?projectId=66e582ad-149b-4500-8fd9-dcd74149d34a"
       mode="hybrid"
       voice-show-transcript="true"
       theme="light"
