@@ -113,6 +113,10 @@ export default function ExpertAnalysis() {
                     <img
                       src={analysis.image}
                       alt={analysis.analyst}
+                      loading="lazy"
+decoding="async"
+width={120}
+height={120}
                       className="w-full h-full object-cover"
                       loading="lazy"
                     />
