@@ -1,10 +1,20 @@
-import { useState, useMemo, useRef, useEffect } from "react";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { supabase } from "@/lib/supabase";
 import { marketBarData } from "@/mocks/pistachioData";
-import TechnicalChartModal from "./TechnicalChartModal";
-import RequestPriceModal from "./RequestPriceModal";
+const TechnicalChartModal = lazy(
+  () => import("./TechnicalChartModal"),
+);
+
+const RequestPriceModal = lazy(
+  () => import("./RequestPriceModal"),
+);
 import ScrollReveal from "@/components/base/ScrollReveal";
 
 interface PistachioPrice {
@@ -165,7 +175,13 @@ export default function PriceTable() {
     if (!tableRef.current || isDownloading) return;
     setIsDownloading(true);
 
-    try {
+    try {    const [
+      { default: html2canvas },
+      { default: jsPDF },
+    ] = await Promise.all([
+      import("html2canvas"),
+      import("jspdf"),
+    ]);
       const table = tableRef.current;
 
       // Clone the table and resolve all oklch colors to RGB for html2canvas compatibility

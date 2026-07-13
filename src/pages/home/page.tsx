@@ -1,7 +1,7 @@
 import StickyMarketBar from "./components/StickyMarketBar";
 import HeroSection from "./components/HeroSection";
 import PriceTable from "./components/PriceTable";
-import HistoricalCharts from "./components/HistoricalCharts";
+import DeferredHistoricalCharts from "./components/DeferredHistoricalCharts";
 import MarketNotes from "./components/MarketNotes";
 import LatestNews from "./components/LatestNews";
 import ExpertAnalysis from "./components/ExpertAnalysis";
@@ -16,7 +16,7 @@ const SECTION_COMPONENTS: Record<
 > = {
   hero: <HeroSection />,
   prices: <PriceTable />,
-  charts: <HistoricalCharts />,
+ charts: <DeferredHistoricalCharts />,
   marketNotes: <MarketNotes />,
   news: <LatestNews />,
   analysis: <ExpertAnalysis />,
