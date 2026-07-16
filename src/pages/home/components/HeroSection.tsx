@@ -34,10 +34,6 @@ export default function HeroSection() {
           title="PesteOnline مرجع قیمت لحظه‌ای پسته ایران"
           className="w-full h-full object-cover"
           style={{ objectPosition: hero.position }}
-          fetchPriority="high"
-decoding="async"
-width={1600}
-height={800}
         />
         <div
           className={`absolute inset-0 ${
