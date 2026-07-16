@@ -88,45 +88,124 @@ function rgbaFromHex(hex: string, alpha: number) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-async function compressBannerImage(file: File) {
-  if (!file.type.startsWith("image/")) throw new Error("فایل انتخاب‌شده تصویر نیست.");
-  if (file.size > 12 * 1024 * 1024)
+async function compressBannerImage(file: File): Promise<Blob> {
+  if (!file.type.startsWith("image/")) {
+    throw new Error("فایل انتخاب‌شده تصویر نیست.");
+  }
+
+  if (file.size > 12 * 1024 * 1024) {
     throw new Error("حجم تصویر بیشتر از ۱۲ مگابایت است.");
+  }
 
-  const source = await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error("خواندن تصویر انجام نشد."));
-    reader.readAsDataURL(file);
-  });
+  const objectUrl = URL.createObjectURL(file);
 
-  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-    const element = new Image();
-    element.onload = () => resolve(element);
-    element.onerror = () => reject(new Error("تصویر قابل پردازش نیست."));
-    element.src = source;
-  });
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const element = new Image();
 
-  const maxWidth = 1800;
-  const maxHeight = 1100;
-  const scale = Math.min(1, maxWidth / image.naturalWidth, maxHeight / image.naturalHeight);
-  const width = Math.max(1, Math.round(image.naturalWidth * scale));
-  const height = Math.max(1, Math.round(image.naturalHeight * scale));
+      element.onload = () => resolve(element);
+      element.onerror = () =>
+        reject(new Error("تصویر انتخاب‌شده قابل پردازش نیست."));
 
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const context = canvas.getContext("2d");
-  if (!context) throw new Error("مرورگر امکان فشرده‌سازی تصویر را ندارد.");
-  context.drawImage(image, 0, 0, width, height);
+      element.src = objectUrl;
+    });
 
-  let result = canvas.toDataURL("image/webp", 0.82);
-  if (!result.startsWith("data:image/")) result = canvas.toDataURL("image/jpeg", 0.82);
-  if (result.length > 1_800_000) result = canvas.toDataURL("image/jpeg", 0.68);
-  if (result.length > 2_500_000)
-    throw new Error("تصویر بعد از فشرده‌سازی هنوز بزرگ است؛ تصویر سبک‌تری انتخاب کن.");
+    const maxWidth = 1600;
+    const maxHeight = 900;
 
-  return result;
+    const scale = Math.min(
+      1,
+      maxWidth / image.naturalWidth,
+      maxHeight / image.naturalHeight,
+    );
+
+    const width = Math.max(
+      1,
+      Math.round(image.naturalWidth * scale),
+    );
+
+    const height = Math.max(
+      1,
+      Math.round(image.naturalHeight * scale),
+    );
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+      throw new Error(
+        "مرورگر امکان فشرده‌سازی تصویر را ندارد.",
+      );
+    }
+
+    context.drawImage(image, 0, 0, width, height);
+
+    const createBlob = (quality: number) =>
+      new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(
+                new Error("ساخت نسخه فشرده تصویر انجام نشد."),
+              );
+            }
+          },
+          "image/webp",
+          quality,
+        );
+      });
+
+    let blob = await createBlob(0.76);
+
+    if (blob.size > 900 * 1024) {
+      blob = await createBlob(0.64);
+    }
+
+    if (blob.size > 1.5 * 1024 * 1024) {
+      throw new Error(
+        "تصویر بعد از فشرده‌سازی هنوز بزرگ است؛ تصویر سبک‌تری انتخاب کن.",
+      );
+    }
+
+    return blob;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+async function uploadHeroImage(file: File): Promise<string> {
+  const compressedImage = await compressBannerImage(file);
+
+  const filePath = `hero/hero-${Date.now()}.webp`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("site-assets")
+    .upload(filePath, compressedImage, {
+      contentType: "image/webp",
+      cacheControl: "31536000",
+      upsert: false,
+    });
+
+  if (uploadError) {
+    throw new Error(
+      `آپلود تصویر انجام نشد: ${uploadError.message}`,
+    );
+  }
+
+  const { data } = supabase.storage
+    .from("site-assets")
+    .getPublicUrl(filePath);
+
+  if (!data.publicUrl) {
+    throw new Error("آدرس عمومی تصویر ساخته نشد.");
+  }
+
+  return data.publicUrl;
 }
 
 function FieldLabel({ title, hint }: { title: string; hint?: string }) {
@@ -415,21 +494,32 @@ export default function AdminDesign() {
     setNotice({ kind: "info", text: "پالت رنگ روی پیش‌نمایش اعمال شد." });
   };
 
-  const handleImageFile = async (event: ChangeEvent<HTMLInputElement>) => {
+  const handleImageFile = async (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     event.target.value = "";
+
     if (!file) return;
 
     setUploading(true);
     setNotice(null);
+
     try {
-      const imageUrl = await compressBannerImage(file);
+      const imageUrl = await uploadHeroImage(file);
+
       setHero("imageUrl", imageUrl);
-      setNotice({ kind: "success", text: "تصویر انتخاب شد و برای وب فشرده شد. برای انتشار ذخیره کن." });
+      setNotice({
+        kind: "success",
+        text: "تصویر فشرده و در فضای ذخیره‌سازی سایت بارگذاری شد. برای انتشار، ذخیره کن.",
+      });
     } catch (error) {
       setNotice({
         kind: "error",
-        text: error instanceof Error ? error.message : "پردازش تصویر انجام نشد.",
+        text:
+          error instanceof Error
+            ? error.message
+            : "پردازش یا آپلود تصویر انجام نشد.",
       });
     } finally {
       setUploading(false);
@@ -478,8 +568,11 @@ export default function AdminDesign() {
     if (!Object.values(design.colors).every(isHexColor))
       return "همه رنگ‌ها باید با فرمت شش‌رقمی مثل #087f5b وارد شوند.";
     if (!design.hero.title.trim()) return "عنوان بنر اصلی را وارد کن.";
-    if (design.hero.imageUrl && !/^(https?:\/\/|data:image\/)/i.test(design.hero.imageUrl.trim()))
-      return "آدرس تصویر بنر باید با http، https یا data:image شروع شود.";
+    if (
+      design.hero.imageUrl &&
+      !/^https?:\/\//i.test(design.hero.imageUrl.trim())
+    )
+      return "آدرس تصویر بنر باید با http یا https شروع شود.";
     if (!design.sections.some((section) => section.visible && section.id !== "marketBar"))
       return "حداقل یک بخش از صفحه اصلی باید قابل نمایش باشد.";
     return null;
@@ -881,15 +974,12 @@ export default function AdminDesign() {
                         <input
                           type="url"
                           dir="ltr"
-                          value={design.hero.imageUrl.startsWith("data:image/") ? "" : design.hero.imageUrl}
+                          value={design.hero.imageUrl}
                           onChange={(event) => setHero("imageUrl", event.target.value)}
                           placeholder="https://example.com/banner.webp"
                           className="w-full rounded-xl border border-slate-200 py-3 pl-3 pr-10 text-left text-sm outline-none focus:border-emerald-500"
                         />
                       </div>
-                      {design.hero.imageUrl.startsWith("data:image/") && (
-                        <p className="mt-2 text-xs font-bold text-emerald-700">تصویر انتخاب‌شده از کامپیوتر آماده ذخیره است.</p>
-                      )}
                     </div>
 
                     <div>
@@ -1253,3 +1343,4 @@ export default function AdminDesign() {
     </div>
   );
 }
+
