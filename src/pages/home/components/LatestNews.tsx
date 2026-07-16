@@ -40,14 +40,11 @@ export default function LatestNews() {
                   aria-label={news.title}
                 ></a>
                 <img
-  src={article.image}
-  alt={article.title}
-  loading="lazy"
-  decoding="async"
-  width={600}
-  height={400}
-  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-/>
+                  src={newsImages[idx]}
+                  alt={news.title}
+                  title={`${news.title} - PesteOnline`}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent"></div>
                 <div className="absolute top-3 right-3">
                   <span className="bg-white/20 backdrop-blur-sm text-white text-xs font-medium rounded-full px-2.5 py-0.5">
