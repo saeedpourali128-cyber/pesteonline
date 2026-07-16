@@ -8,13 +8,13 @@ import {
 } from "@/lib/articles";
 
 const analystImages = [
-  "https://readdy.ai/api/search-image?query=Professional%20middle%20eastern%20man%20portrait%20in%20business%20suit%2C%20warm%20studio%20lighting%2C%20clean%20white%20background%2C%20professional%20headshot%20photography%2C%20friendly%20expression%2C%20corporate%20style&width=120&height=120&seq=analyst-01&orientation=squarish",
-  "https://readdy.ai/api/search-image?query=Professional%20middle%20eastern%20man%20portrait%20in%20smart%20casual%20attire%2C%20warm%20studio%20lighting%2C%20clean%20white%20background%2C%20professional%20headshot%20photography%2C%20confident%20expression%2C%20modern%20corporate%20style&width=120&height=120&seq=analyst-02&orientation=squarish",
-  "https://readdy.ai/api/search-image?query=Professional%20middle%20eastern%20woman%20portrait%20in%20business%20attire%2C%20warm%20studio%20lighting%2C%20clean%20white%20background%2C%20professional%20headshot%20photography%2C%20confident%20smile%2C%20modern%20corporate%20style&width=120&height=120&seq=analyst-03&orientation=squarish",
-  "https://readdy.ai/api/search-image?query=Professional%20middle%20eastern%20man%20portrait%20in%20formal%20attire%2C%20warm%20studio%20lighting%2C%20clean%20white%20background%2C%20professional%20headshot%20photography%2C%20thoughtful%20expression%2C%20academic%20style&width=120&height=120&seq=analyst-04&orientation=squarish",
-  "https://readdy.ai/api/search-image?query=Professional%20middle%20eastern%20woman%20portrait%20in%20modern%20business%20attire%2C%20warm%20studio%20lighting%2C%20clean%20white%20background%2C%20professional%20headshot%20photography%2C%20warm%20smile%2C%20contemporary%20style&width=120&height=120&seq=analyst-05&orientation=squarish",
-  "https://readdy.ai/api/search-image?query=Professional%20middle%20eastern%20man%20portrait%20in%20business%20casual%20attire%2C%20warm%20studio%20lighting%2C%20clean%20white%20background%2C%20professional%20headshot%20photography%2C%20authoritative%20expression%2C%20executive%20style&width=120&height=120&seq=analyst-06&orientation=squarish",
-];
+  "/images/home/analysts/analyst-01.webp",
+  "/images/home/analysts/analyst-02.webp",
+  "/images/home/analysts/analyst-03.webp",
+  "/images/home/analysts/analyst-04.webp",
+  "/images/home/analysts/analyst-05.webp",
+  "/images/home/analysts/analyst-06.webp",
+] as const;
 
 type DisplayAnalysis = {
   id: string;
@@ -24,7 +24,27 @@ type DisplayAnalysis = {
   date: string;
   slug: string | null;
   image: string;
+  fallbackImage: string;
 };
+
+function resolveAnalysisImage(
+  coverImage: string | null,
+  fallbackImage: string,
+) {
+  if (!coverImage) return fallbackImage;
+
+  try {
+    const host = new URL(coverImage, window.location.origin).hostname;
+
+    if (host === "readdy.ai" || host.endsWith(".readdy.ai")) {
+      return fallbackImage;
+    }
+  } catch {
+    return fallbackImage;
+  }
+
+  return coverImage;
+}
 
 export default function ExpertAnalysis() {
   const [databaseAnalyses, setDatabaseAnalyses] = useState<ArticleRecord[]>([]);
@@ -34,11 +54,13 @@ export default function ExpertAnalysis() {
 
     void getPublishedArticles(["analysis"])
       .then((rows) => {
-        if (active) setDatabaseAnalyses(rows.slice(0, 6));
+        if (active) {
+          setDatabaseAnalyses(rows.slice(0, 6));
+        }
       })
-      .catch((error) =>
-        console.error("Loading homepage market analyses failed", error),
-      );
+      .catch((error) => {
+        console.error("Loading homepage market analyses failed", error);
+      });
 
     return () => {
       active = false;
@@ -47,57 +69,75 @@ export default function ExpertAnalysis() {
 
   const featured = useMemo<DisplayAnalysis[]>(() => {
     if (databaseAnalyses.length > 0) {
-      return databaseAnalyses.map((analysis, index) => ({
-        id: `db-${analysis.id}`,
-        analyst: "تحریریه PesteOnline",
-        title: analysis.title,
-        content: analysis.excerpt || analysis.content || "",
-        date: formatPersianDate(analysis.published_at ?? analysis.created_at),
-        slug: analysis.slug,
-        image: analysis.cover_image || analystImages[index % analystImages.length],
-      }));
+      return databaseAnalyses.map((analysis, index) => {
+        const fallbackImage =
+          analystImages[index % analystImages.length];
+
+        return {
+          id: `db-${analysis.id}`,
+          analyst: "تحریریه PesteOnline",
+          title: analysis.title,
+          content: analysis.excerpt || analysis.content || "",
+          date: formatPersianDate(
+            analysis.published_at ?? analysis.created_at,
+          ),
+          slug: analysis.slug,
+          image: resolveAnalysisImage(
+            analysis.cover_image,
+            fallbackImage,
+          ),
+          fallbackImage,
+        };
+      });
     }
 
-    return expertAnalyses.slice(0, 6).map((analysis, index) => ({
-      id: `mock-${analysis.id}`,
-      analyst: analysis.analyst,
-      title: analysis.title,
-      content: analysis.content,
-      date: analysis.date,
-      slug: null,
-      image: analystImages[index % analystImages.length],
-    }));
+    return expertAnalyses.slice(0, 6).map((analysis, index) => {
+      const fallbackImage =
+        analystImages[index % analystImages.length];
+
+      return {
+        id: `mock-${analysis.id}`,
+        analyst: analysis.analyst,
+        title: analysis.title,
+        content: analysis.content,
+        date: analysis.date,
+        slug: null,
+        image: fallbackImage,
+        fallbackImage,
+      };
+    });
   }, [databaseAnalyses]);
 
   return (
     <section
       id="expert-analysis"
-      className="w-full bg-background-100/60 py-12 md:py-16 px-4 md:px-6"
+      className="w-full bg-background-100/60 px-4 py-12 md:px-6 md:py-16"
     >
-      <div className="max-w-7xl mx-auto">
+      <div className="mx-auto max-w-7xl">
         <ScrollReveal>
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8 md:mb-10">
+          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between md:mb-10">
             <div>
-              <span className="inline-block bg-accent-100 text-accent-700 text-xs font-medium rounded-full px-3 py-1 mb-3">
+              <span className="mb-3 inline-block rounded-full bg-accent-100 px-3 py-1 text-xs font-medium text-accent-700">
                 تحلیل
               </span>
-              <h2 className="text-2xl md:text-4xl font-black text-foreground-950 leading-[1.2]">
+              <h2 className="text-2xl font-black leading-[1.2] text-foreground-950 md:text-4xl">
                 <strong>تحلیل‌های کارشناسی</strong>
                 <br />
                 <strong>بازار پسته</strong>
               </h2>
             </div>
+
             <a
               href="/analysis"
-              className="inline-flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-white text-sm font-semibold rounded-full px-5 py-2.5 cursor-pointer transition-colors duration-200 whitespace-nowrap"
+              className="inline-flex cursor-pointer items-center gap-2 whitespace-nowrap rounded-full bg-primary-500 px-5 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-primary-600"
             >
               <span>مشاهده بایگانی کامل تحلیل‌ها</span>
-              <i className="ri-arrow-left-line w-4 h-4 flex items-center justify-center"></i>
+              <i className="ri-arrow-left-line flex h-4 w-4 items-center justify-center" />
             </a>
           </div>
         </ScrollReveal>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-3">
           {featured.map((analysis, index) => (
             <ScrollReveal
               key={analysis.id}
@@ -105,36 +145,48 @@ export default function ExpertAnalysis() {
               direction="up"
             >
               <article
-                className="bg-white rounded-xl p-4 md:p-5 border border-background-200/70 h-full flex flex-col"
+                className="flex h-full flex-col rounded-xl border border-background-200/70 bg-white p-4 md:p-5"
                 aria-label={`تحلیل ${analysis.analyst} - ${analysis.title}`}
               >
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0 bg-background-200">
+                <div className="mb-3 flex items-center gap-3">
+                  <div className="h-11 w-11 flex-shrink-0 overflow-hidden rounded-full bg-background-200">
                     <img
                       src={analysis.image}
                       alt={analysis.analyst}
+                      width={120}
+                      height={120}
                       loading="lazy"
-decoding="async"
-width={120}
-height={120}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-cover"
+                      onError={(event) => {
+                        if (
+                          event.currentTarget.src !==
+                          new URL(
+                            analysis.fallbackImage,
+                            window.location.origin,
+                          ).href
+                        ) {
+                          event.currentTarget.src =
+                            analysis.fallbackImage;
+                        }
+                      }}
                     />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-bold text-foreground-950 truncate">
+
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-bold text-foreground-950">
                       {analysis.analyst}
                     </div>
-                    <div className="text-xs text-foreground-400 line-clamp-1">
+                    <div className="line-clamp-1 text-xs text-foreground-400">
                       {analysis.title}
                     </div>
-                    <div className="text-[11px] text-foreground-300 mt-0.5">
+                    <div className="mt-0.5 text-[11px] text-foreground-300">
                       {analysis.date}
                     </div>
                   </div>
                 </div>
 
-                <p className="text-sm text-foreground-600 leading-[1.9] font-light flex-1 line-clamp-5">
+                <p className="line-clamp-5 flex-1 text-sm font-light leading-[1.9] text-foreground-600">
                   {analysis.content}
                 </p>
 
@@ -153,10 +205,11 @@ height={120}
         </div>
 
         <ScrollReveal delay={400}>
-          <div className="mt-10 md:mt-12 pt-6 border-t border-background-200/60">
-            <span className="block text-xs font-semibold text-foreground-400 mb-3 text-center">
+          <div className="mt-10 border-t border-background-200/60 pt-6 md:mt-12">
+            <span className="mb-3 block text-center text-xs font-semibold text-foreground-400">
               مطالب مرتبط:
             </span>
+
             <div className="flex flex-wrap justify-center gap-2">
               {[
                 ["#prices", "قیمت لحظه‌ای پسته ایران"],
@@ -168,9 +221,9 @@ height={120}
                 <a
                   key={href}
                   href={href}
-                  className="inline-flex items-center gap-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 text-xs font-medium rounded-full px-3 py-1.5 cursor-pointer transition-colors duration-200 whitespace-nowrap"
+                  className="inline-flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full bg-primary-50 px-3 py-1.5 text-xs font-medium text-primary-700 transition-colors duration-200 hover:bg-primary-100"
                 >
-                  <i className="ri-arrow-left-line w-3.5 h-3.5 flex items-center justify-center"></i>
+                  <i className="ri-arrow-left-line flex h-3.5 w-3.5 items-center justify-center" />
                   <span>{label}</span>
                 </a>
               ))}
