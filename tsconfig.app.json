@@ -30,7 +30,7 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": false,
     "noUncheckedSideEffectImports": false,
-    "types": ["vitest/globals"],
+    "types": [],
     "paths": {
       "@/*": ["./src/*"],
     }

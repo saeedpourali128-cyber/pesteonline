@@ -248,7 +248,7 @@ export default function PistachioTypePage({ pistachioType }: { pistachioType: Pi
                   {(["today", "yesterday", "lastWeek", "lastMonth", "lastYear"] as ArchivePeriod[]).map((period) => {
                     const price = typeData.prices[period];
                     const change = period === "today" ? 0 : price - typeData.prices.today;
-                    const tag = period === "today" ? { color: "text-foreground-500", icon: "", bg: "" } : priceChangeTag(change);
+                    const tag = period === "today" ? { text: "", color: "text-foreground-500", icon: "", bg: "" } : priceChangeTag(change);
                     return (
                       <div key={period} className="p-4 md:p-5 text-center">
                         <div className="text-xs text-foreground-400 mb-2">{archivePeriodLabels[period]}</div>

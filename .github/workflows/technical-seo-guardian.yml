@@ -1,0 +1,227 @@
+name: Peste SEO Guardian
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "نوع اجرا"
+        required: true
+        default: "audit"
+        type: choice
+        options:
+          - audit
+          - safe-fix
+          - ai-review
+      target:
+        description: "محیط بررسی"
+        required: true
+        default: "preview"
+        type: choice
+        options:
+          - preview
+          - production
+  schedule:
+    - cron: "15 2 * * *"
+      timezone: "Asia/Tehran"
+    - cron: "30 3 * * 0"
+      timezone: "Asia/Tehran"
+
+concurrency:
+  group: seo-guardian-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  models: read
+
+jobs:
+  audit:
+    name: Build, Runtime and Technical SEO Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Type check
+        run: npm run type-check
+
+      - name: Production build
+        run: npm run build
+
+      - name: Lint report
+        continue-on-error: true
+        run: npm run lint 2>&1 | tee reports-lint.log
+
+      - name: Source audit
+        continue-on-error: true
+        run: npm run seo:audit:source
+
+      - name: Bundle budget
+        continue-on-error: true
+        run: npm run seo:audit:bundle
+
+      - name: Runtime audit against local preview
+        run: npm run seo:audit:runtime
+
+      - name: Lighthouse CI
+        continue-on-error: true
+        run: npx lhci autorun --config=./lighthouserc.cjs
+
+      - name: Audit production robots, sitemap and routes
+        if: >-
+          github.event_name == 'schedule' ||
+          (github.event_name == 'workflow_dispatch' && inputs.target == 'production')
+        continue-on-error: true
+        env:
+          BASE_URL: https://pesteonline.com
+        run: |
+          npm run seo:audit:live
+          npm run seo:audit:runtime
+
+      - name: Generate consolidated report
+        if: always()
+        run: npm run seo:report
+
+      - name: Add report to workflow summary
+        if: always()
+        run: cat reports/seo-guardian-report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: peste-seo-guardian-${{ github.run_id }}
+          path: |
+            reports/
+            reports-lint.log
+          retention-days: 30
+
+  safe_fix:
+    name: Create safe-fix pull request
+    needs: audit
+    if: >-
+      always() &&
+      github.event_name == 'workflow_dispatch' &&
+      inputs.mode == 'safe-fix'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Apply deterministic safe fixes
+        run: npm run seo:safe-fix
+
+      - name: Validate fixed code
+        run: |
+          npm run type-check
+          npm run build
+          npm run seo:audit:source
+
+      - name: Create pull request when files changed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if git diff --quiet; then
+            echo "No safe changes were necessary." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          BRANCH="agent/seo-safe-fix-${GITHUB_RUN_ID}"
+          git config user.name "Peste SEO Guardian"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add src
+          git commit -m "fix: apply deterministic technical SEO safeguards"
+          git push origin "$BRANCH"
+
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "fix: Peste SEO Guardian safe fixes" \
+            --body "اصلاحات کم‌ریسک و قطعی توسط Peste SEO Guardian انجام شده‌اند. Build، Type Check و Source Audit موفق بوده‌اند. لطفاً Preview را پیش از Merge بررسی کنید."
+
+  ai_review:
+    name: AI technical SEO review
+    needs: audit
+    if: >-
+      always() &&
+      (
+        (github.event_name == 'workflow_dispatch' && inputs.mode == 'ai-review') ||
+        (github.event_name == 'schedule' && github.event.schedule == '30 3 * * 0')
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+      models: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download audit reports
+        uses: actions/download-artifact@v4
+        with:
+          name: peste-seo-guardian-${{ github.run_id }}
+          path: reports
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Ask GitHub Models for prioritized review
+        id: ai
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_MODELS_MODEL: openai/gpt-4.1
+        run: npm run seo:ai-review
+
+      - name: Create GitHub issue from AI review
+        if: steps.ai.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TITLE="گزارش هفتگی Peste SEO Guardian - $(date -u +%Y-%m-%d)"
+          gh issue create \
+            --title "$TITLE" \
+            --body-file reports/ai-review.md \
+            --label "technical-seo" || \
+          gh issue create \
+            --title "$TITLE" \
+            --body-file reports/ai-review.md

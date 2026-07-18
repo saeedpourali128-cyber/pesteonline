@@ -17,6 +17,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",
+    "@lhci/cli": "^0.15.1",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^6.0.1",
@@ -26,6 +27,7 @@
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.3.0",
     "jiti": "^2.6.1",
+    "playwright": "^1.61.1",
     "postcss": "^8.5.6",
     "source-map": "^0.7.6",
     "tailwindcss": "^3.4.17",
@@ -41,7 +43,14 @@
     "dev": "vite",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "type-check": "tsc --noEmit --project tsconfig.app.json"
+    "type-check": "tsc --noEmit --project tsconfig.app.json",
+    "seo:audit:source": "node scripts/seo/audit-source.mjs",
+    "seo:audit:runtime": "node scripts/seo/audit-runtime.mjs",
+    "seo:audit:bundle": "node scripts/seo/audit-bundle.mjs",
+    "seo:audit:live": "node scripts/seo/audit-live.mjs",
+    "seo:report": "node scripts/seo/generate-report.mjs",
+    "seo:safe-fix": "node scripts/seo/safe-fix.mjs",
+    "seo:ai-review": "node scripts/seo/ai-review.mjs"
   },
   "type": "module",
   "version": "0.0.0"

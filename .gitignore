@@ -5,3 +5,7 @@ out/
 .env.*
 !.env.example
 google search/
+reports/
+.lighthouseci/
+playwright-report/
+test-results/
