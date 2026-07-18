@@ -55,11 +55,15 @@ function startPreviewServer() {
   return spawn("npm", previewArgs, {
     stdio: ["ignore", "pipe", "pipe"],
     env: process.env,
+    detached: true,
   });
 }
 
-function stopPreviewServer(child) {
-  if (!child?.pid) return;
+async function stopPreviewServer(child) {
+  if (!child?.pid || child.exitCode !== null) return;
+
+  child.stdout?.destroy();
+  child.stderr?.destroy();
 
   if (process.platform === "win32") {
     spawnSync(
@@ -70,7 +74,30 @@ function stopPreviewServer(child) {
     return;
   }
 
-  child.kill("SIGTERM");
+  const waitForExit = new Promise((resolve) => {
+    const finish = () => resolve();
+    child.once("exit", finish);
+    child.once("close", finish);
+
+    const timer = setTimeout(finish, 3000);
+    timer.unref?.();
+  });
+
+  try {
+    process.kill(-child.pid, "SIGTERM");
+  } catch {
+    child.kill("SIGTERM");
+  }
+
+  await waitForExit;
+
+  if (child.exitCode === null) {
+    try {
+      process.kill(-child.pid, "SIGKILL");
+    } catch {
+      child.kill("SIGKILL");
+    }
+  }
 }
 
 if (useLocalPreview) {
@@ -85,7 +112,7 @@ if (useLocalPreview) {
   try {
     await waitForServer(`${baseUrl}/`);
   } catch (error) {
-    stopPreviewServer(server);
+    await stopPreviewServer(server);
     throw error;
   }
 }
@@ -222,7 +249,7 @@ try {
   }
 } finally {
   await browser.close();
-  stopPreviewServer(server);
+  await stopPreviewServer(server);
 }
 
 await writeJson("runtime-audit.json", {
