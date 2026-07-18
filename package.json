@@ -50,7 +50,9 @@
     "seo:audit:live": "node scripts/seo/audit-live.mjs",
     "seo:report": "node scripts/seo/generate-report.mjs",
     "seo:safe-fix": "node scripts/seo/safe-fix.mjs",
-    "seo:ai-review": "node scripts/seo/ai-review.mjs"
+    "seo:ai-review": "node scripts/seo/ai-review.mjs",
+    "seo:generate:sitemap": "node scripts/seo/generate-sitemap.mjs",
+    "prebuild": "npm run seo:generate:sitemap"
   },
   "type": "module",
   "version": "0.0.0"
