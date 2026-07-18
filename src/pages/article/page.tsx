@@ -1,3 +1,4 @@
+import { SITE_URL } from "@/lib/site";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import BreadcrumbNav from "@/components/feature/BreadcrumbNav";
@@ -54,10 +55,22 @@ function setCanonical(url: string) {
   tag.href = url;
 }
 
+function normalizeCanonical(
+  customUrl: string | null,
+  slug: string,
+): string {
+  const fallback =
+    `${SITE_URL}/articles/${encodeURIComponent(slug)}`;
+
+  if (!customUrl) return fallback;
+
+  return customUrl.replace(
+    /^https?:\/\/(?:www\.)?pesteonline\.com(?=\/|$)/i,
+    SITE_URL,
+  );
+}
 function databaseToDisplay(article: ArticleRecord): DisplayArticle {
-  const canonical =
-    article.canonical_url ||
-    `${window.location.origin}/articles/${encodeURIComponent(article.slug)}`;
+  const canonical = normalizeCanonical(article.canonical_url, article.slug);
 
   return {
     title: article.title,
@@ -91,7 +104,7 @@ function getBuiltInArticle(slug: string): DisplayArticle | null {
       author: news.source,
       metaTitle: `${news.title} | PesteOnline`,
       metaDescription: news.summary,
-      canonicalUrl: `${window.location.origin}/articles/${encodeURIComponent(news.slug)}`,
+      canonicalUrl: `${SITE_URL}/articles/${encodeURIComponent(news.slug)}`,
       isIndexable: true,
     };
   }
@@ -111,7 +124,7 @@ function getBuiltInArticle(slug: string): DisplayArticle | null {
       author: analysis.analyst,
       metaTitle: `${headline} | PesteOnline`,
       metaDescription: analysis.content.slice(0, 165),
-      canonicalUrl: `${window.location.origin}/articles/${encodeURIComponent(analysis.slug)}`,
+      canonicalUrl: `${SITE_URL}/articles/${encodeURIComponent(analysis.slug)}`,
       isIndexable: true,
     };
   }

@@ -1,5 +1,5 @@
 export default {
-  productionUrl: "https://pesteonline.com",
+  productionUrl: "https://www.pesteonline.com",
   previewPort: 4173,
   routes: [
     { path: "/", name: "خانه", indexable: true, lighthouse: true },
